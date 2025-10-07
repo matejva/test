@@ -1,40 +1,182 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sk">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My First Web Page</title>
+  <title>TimeLog Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0;
       background-color: #f5f5f5;
-      margin: 40px;
     }
-    h1 {
-      color: #333;
-    }
-    button {
-      background-color: #0078d4;
+
+    /* Navbar */
+    .navbar {
+      background-color: #1976d2;
       color: white;
       padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .navbar .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin-left: 20px;
+      font-weight: 500;
+    }
+
+    /* Container */
+    .container {
+      padding: 20px 40px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-top: 30px;
+    }
+
+    /* Filters */
+    .filters {
+      margin: 10px 0 20px 0;
+    }
+
+    select, button {
+      padding: 5px 10px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    button {
+      background-color: #1976d2;
+      color: white;
       border: none;
-      border-radius: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #135ba1;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .export-btn {
+      background-color: #4caf50;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 4px;
+      border: none;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #005ea1;
+
+    .export-btn:hover {
+      background-color: #3e8e41;
     }
   </style>
 </head>
 <body>
-  <h1>Hello, World!</h1>
-  <p>This is my first web page 🚀</p>
-  <button onclick="sayHello()">Click me!</button>
 
-  <script>
-    function sayHello() {
-      alert('Hello from JavaScript!');
-    }
-  </script>
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="logo">TimeLog</div>
+    <div class="nav-links">
+      <a href="#">Dashboard</a>
+      <a href="#">Záznamy</a>
+      <a href="#">+ Pridať</a>
+      <a href="#">Admin</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>Vitaj, Marek</h1>
+    <h2>Celkom hodín</h2>
+
+    <div class="filters">
+      <select>
+        <option>April</option>
+        <option>May</option>
+      </select>
+      <select>
+        <option>2024</option>
+        <option>2025</option>
+      </select>
+      <button>Zobraziť</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Dátum</th>
+          <th>Hodiny</th>
+          <th>Projekt</th>
+          <th>Poznámka</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2024-04-25</td>
+          <td>8</td>
+          <td>Projekt A</td>
+          <td>Vývoj modulu</td>
+          <td><button class="export-btn">Export</button></td>
+        </tr>
+        <tr>
+          <td>2024-04-24</td>
+          <td>6</td>
+          <td>Projekt B</td>
+          <td>Balík aktualizácií</td>
+          <td><button class="export-btn">Export</button></td>
+        </tr>
+        <tr>
+          <td>2024-04-23</td>
+          <td>7</td>
+          <td>Projekt A</td>
+          <td>Testovanie</td>
+          <td><button class="export-btn">Export</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><strong>Celkom</strong></td>
+          <td colspan="4">21 hodín</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
 </body>
 </html>
