@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Pridať záznam</h2>
+<form method="post">
+  <label>Dátum:<br><input type="date" name="date" required value="{{ (request.args.get('date') or '') }}"></label><br>
+  <label>Hodiny:<br><input type="number" step="0.25" name="hours" required></label><br>
+  <label>Projekt:<br><input name="project"></label><br>
+  <label>Poznámka:<br><textarea name="note"></textarea></label><br>
+  <button type="submit">Uložiť</button>
+</form>
+{% endblock %}
