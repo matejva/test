@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Vytvoriť používateľa</h2>
+<form method="post">
+  <label>Meno:<br><input name="name" required></label><br>
+  <label>Email:<br><input name="email" type="email"></label><br>
+  <label>Heslo:<br><input name="password" type="password" required></label><br>
+  <label>Admin: <input type="checkbox" name="is_admin"></label><br>
+  <button type="submit">Vytvoriť</button>
+</form>
+{% endblock %}
