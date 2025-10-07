@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Vitaj, {{ current_user.name }}</h2>
+
+<form method="get">
+  <label>Rok: <input name="year" type="number" value="{{ year }}"></label>
+  <label>Mesiac: <input name="month" type="number" min="1" max="12" value="{{ month }}"></label>
+  <button type="submit">Zobraziť</button>
+</form>
+
+<p>Celkom hodín za vybrané obdobie: <strong>{{ total }}</strong></p>
+
+<a href="{{ url_for('export', year=year, month=month) }}">Exportovať (Excel)</a>
+
+<table>
+<thead><tr><th>Dátum</th><th>Hodiny</th><th>Projekt</th><th>Poznámka</th></tr></thead>
+<tbody>
+{% for e in entries %}
+  <tr>
+    <td>{{ e.date }}</td>
+    <td>{{ e.hours }}</td>
+    <td>{{ e.project }}</td>
+    <td>{{ e.note }}</td>
+  </tr>
+{% endfor %}
+</tbody>
+</table>
+
+{% endblock %}
