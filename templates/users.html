@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Užívatelia</h2>
+<table>
+<thead><tr><th>Meno</th><th>Email</th><th>Admin</th></tr></thead>
+<tbody>
+{% for u in users %}
+<tr><td>{{ u.name }}</td><td>{{ u.email }}</td><td>{{ 'Áno' if u.is_admin else 'Nie' }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}
