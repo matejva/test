@@ -4,13 +4,13 @@ Flask-Login==0.6.3
 Flask-SQLAlchemy==3.0.3
 
 # Data handling
-pandas==2.2.2
+pandas==2.3.3
 openpyxl==3.1.2
 
 # Deployment
 gunicorn==21.2.0
 python-dotenv==1.0.0
 
-# Optional helpers to prevent build errors
+# Build helpers
 setuptools>=65.5.0
 wheel>=0.41.2
