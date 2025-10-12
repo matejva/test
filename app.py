@@ -240,13 +240,14 @@ def admin_entries():
 @app.route('/create_admin')
 def create_admin():
     """Dočasná cesta na vytvorenie prvého admin účtu"""
-    if User.query.filter_by(name="admin").first():
-        return "Admin už existuje."
-    admin = User(name="admin", email="admin@timelog.local", is_admin=True)
-    admin.set_password("tvojeheslo")
-    db.session.add(admin)
-    db.session.commit()
-    return "Admin účet vytvorený! Meno: admin, Heslo: tvojeheslo"
+    with app.app_context():
+        if User.query.filter_by(name="admin").first():
+            return "Admin už existuje."
+        admin = User(name="admin", email="admin@timelog.local", is_admin=True)
+        admin.set_password("tvojeheslo")
+        db.session.add(admin)
+        db.session.commit()
+        return "Admin účet vytvorený! Meno: admin, Heslo: tvojeheslo"
 
 
 # ===============================
