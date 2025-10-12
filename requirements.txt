@@ -4,7 +4,7 @@ Flask-Login==0.6.3
 Flask-SQLAlchemy==3.0.3
 
 # Database driver (for PostgreSQL on Render)
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 
 # Data handling
 pandas==2.3.3
