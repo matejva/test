@@ -13,7 +13,11 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-secret')
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///timelog.db')
+
+# Použitie PostgreSQL na Render
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL musí byť nastavené v .env")
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -21,7 +25,7 @@ db = SQLAlchemy(app)
 login = LoginManager(app)
 login.login_view = 'login'
 
-# MODELS
+# MODELY
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
@@ -46,12 +50,12 @@ class TimeEntry(db.Model):
 
     user = db.relationship('User', backref='entries')
 
-# login loader
+# LOGIN LOADER
 @login.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Helpers
+# HELPERS
 def admin_required(fn):
     from functools import wraps
     @wraps(fn)
@@ -61,6 +65,12 @@ def admin_required(fn):
             return redirect(url_for('dashboard'))
         return fn(*a, **k)
     return wrapper
+
+# ===============================
+# AUTOMATICKÉ VYTOVRENIE TABULIEK
+# ===============================
+with app.app_context():
+    db.create_all()  # PostgreSQL tabuľky sa vytvoria hneď pri štarte
 
 # ROUTES
 @app.route('/')
@@ -92,7 +102,6 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # user's own monthly summary (current month)
     month = request.args.get('month')
     year = request.args.get('year')
     if not month or not year:
@@ -114,7 +123,6 @@ def dashboard():
 @app.route('/entries')
 @login_required
 def entries():
-    # filterable list (own entries)
     q = TimeEntry.query.filter_by(user_id=current_user.id).order_by(TimeEntry.date.desc())
     return render_template('entries.html', entries=q.all())
 
@@ -178,11 +186,9 @@ def delete_entry(entry_id):
     flash('Záznam zmazaný', 'success')
     return redirect(request.referrer or url_for('admin_panel'))
 
-# Export (current user or all if admin)
 @app.route('/export', methods=['GET'])
 @login_required
 def export():
-    # params: user_id (optional, only admin can export others)
     user_id = request.args.get('user_id')
     year = request.args.get('year')
     month = request.args.get('month')
@@ -215,7 +221,6 @@ def export():
     if df.empty:
         df = pd.DataFrame(columns=['user','date','hours','project','note'])
 
-    # prepare excel in-memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='hours')
@@ -224,7 +229,6 @@ def export():
     filename = f"timelog_user_{uid}_{year or 'all'}_{month or 'all'}.xlsx"
     return send_file(output, download_name=filename, as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-# Admin: list all entries with filters
 @app.route('/admin/entries')
 @login_required
 @admin_required
@@ -237,24 +241,21 @@ def admin_entries():
     users = User.query.order_by(User.name).all()
     return render_template('entries.html', entries=entries, users=users, admin_view=True)
 
+# ===============================
+# Dočasná route na vytvorenie admina
+# ===============================
 @app.route('/create_admin')
 def create_admin():
-    """Dočasná cesta na vytvorenie prvého admin účtu"""
-    with app.app_context():
-        if User.query.filter_by(name="admin").first():
-            return "Admin už existuje."
-        admin = User(name="admin", email="admin@timelog.local", is_admin=True)
-        admin.set_password("tvojeheslo")
-        db.session.add(admin)
-        db.session.commit()
-        return "Admin účet vytvorený! Meno: admin, Heslo: tvojeheslo"
-
+    if User.query.filter_by(name="admin").first():
+        return "Admin už existuje."
+    admin = User(name="admin", email="admin@timelog.local", is_admin=True)
+    admin.set_password("tvojeheslo")
+    db.session.add(admin)
+    db.session.commit()
+    return "Admin účet vytvorený! Meno: admin, Heslo: tvojeheslo"
 
 # ===============================
 # SPUSTENIE
 # ===============================
-
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(host='0.0.0.0', port=10000)
