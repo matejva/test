@@ -237,23 +237,23 @@ def admin_entries():
     users = User.query.order_by(User.name).all()
     return render_template('entries.html', entries=entries, users=users, admin_view=True)
 
-# --- ADMIN CREATE ROUTE (one-time) ---
 @app.route('/create_admin')
 def create_admin():
-    """Temporary route to create admin (run only once!)"""
-    with app.app_context():
-        db.create_all()  # ensure tables exist
-        if User.query.filter_by(name="admin").first():
-            return "Admin už existuje ✅"
+    """Dočasná cesta na vytvorenie prvého admin účtu"""
+    if User.query.filter_by(name="admin").first():
+        return "Admin už existuje."
+    admin = User(name="admin", email="admin@timelog.local", is_admin=True)
+    admin.set_password("tvojeheslo")
+    db.session.add(admin)
+    db.session.commit()
+    return "Admin účet vytvorený! Meno: admin, Heslo: tvojeheslo"
 
-        admin = User(name="admin", email="admin@timelog.local", is_admin=True)
-        admin.set_password("admin123")  # 👉 change password immediately
-        db.session.add(admin)
-        db.session.commit()
-        return "✅ Admin vytvorený! Prihlás sa ako <b>admin / admin123</b>"
 
-# --- RUN APP ---
+# ===============================
+# SPUSTENIE
+# ===============================
+
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()  # ensure database exists before running
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=os.getenv('FLASK_DEBUG', '0')=='1')
+        db.create_all()
+    app.run(host='0.0.0.0', port=10000)
