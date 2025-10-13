@@ -1,12 +1,14 @@
 import os
 from datetime import datetime
 from io import BytesIO
+from datetime import date
 
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
+from sqlalchemy import func
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -72,6 +74,19 @@ def admin_required(fn):
 with app.app_context():
     db.create_all()  # PostgreSQL tabuľky sa vytvoria hneď pri štarte
 
+# ===============================
+# POMOCNÉ FUNKCIE
+# ===============================
+def week_of_month_expr(column):
+    """
+    SQLAlchemy výraz pre výpočet týždňa v mesiaci:
+    ((EXTRACT(DAY FROM date) + EXTRACT(DOW FROM first_day_of_month) - 1) / 7 + 1)
+    """
+    first_day = func.date_trunc('month', column)
+    dow_first = func.extract('dow', first_day)  # 0=Sunday
+    day = func.extract('day', column)
+    return func.floor((day + dow_first - 1) / 7 + 1)
+
 # ROUTES
 @app.route('/')
 def index():
@@ -117,10 +132,11 @@ def dashboard():
     if year:
         query = query.filter(db.extract('year', TimeEntry.date) == year)
 
-    if week:
-        query = query.filter(db.extract('week', TimeEntry.date) == week)
-    elif month:
+    if month:
         query = query.filter(db.extract('month', TimeEntry.date) == month)
+
+    if week:
+        query = query.filter(week_of_month_expr(TimeEntry.date) == week)
 
     entries = query.order_by(TimeEntry.date.desc()).all()
     total = sum(e.hours for e in entries)
@@ -131,7 +147,7 @@ def dashboard():
         total=total,
         month=month,
         year=year,
-        week=week  # odovzdáme aj do šablóny
+        week=week
     )
 
 @app.route('/entries')
