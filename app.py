@@ -102,23 +102,37 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    month = request.args.get('month')
-    year = request.args.get('year')
-    if not month or not year:
-        now = datetime.utcnow()
-        month = now.month
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+    week = request.args.get('week', type=int)  # nový parameter
+
+    now = datetime.utcnow()
+    if not year:
         year = now.year
-    else:
-        month = int(month); year = int(year)
+    if not month and not week:
+        month = now.month
 
-    entries = TimeEntry.query.filter(
-        TimeEntry.user_id == current_user.id,
-        db.extract('month', TimeEntry.date) == month,
-        db.extract('year', TimeEntry.date) == year
-    ).order_by(TimeEntry.date.desc()).all()
+    query = TimeEntry.query.filter(TimeEntry.user_id == current_user.id)
 
+    if year:
+        query = query.filter(db.extract('year', TimeEntry.date) == year)
+
+    if week:
+        query = query.filter(db.extract('week', TimeEntry.date) == week)
+    elif month:
+        query = query.filter(db.extract('month', TimeEntry.date) == month)
+
+    entries = query.order_by(TimeEntry.date.desc()).all()
     total = sum(e.hours for e in entries)
-    return render_template('dashboard.html', entries=entries, total=total, month=month, year=year)
+
+    return render_template(
+        'dashboard.html',
+        entries=entries,
+        total=total,
+        month=month,
+        year=year,
+        week=week  # odovzdáme aj do šablóny
+    )
 
 @app.route('/entries')
 @login_required
