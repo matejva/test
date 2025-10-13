@@ -1,29 +1,68 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Vitaj, {{ current_user.name }}</h2>
 
-<form method="get">
-  <label>Rok: <input name="year" type="number" value="{{ year }}"></label>
-  <label>Mesiac: <input name="month" type="number" min="1" max="12" value="{{ month }}"></label>
-  <button type="submit">Zobraziť</button>
-</form>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">👋 Vitaj, {{ current_user.name }}</h2>
+  <a href="{{ url_for('export', year=year, month=month) }}" class="btn btn-success">
+    📊 Exportovať do Excelu
+  </a>
+</div>
 
-<p>Celkom hodín za vybrané obdobie: <strong>{{ total }}</strong></p>
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label for="year" class="form-label fw-semibold">Rok</label>
+        <input id="year" name="year" type="number" class="form-control" value="{{ year }}">
+      </div>
+      <div class="col-md-3">
+        <label for="month" class="form-label fw-semibold">Mesiac</label>
+        <input id="month" name="month" type="number" min="1" max="12" class="form-control" value="{{ month }}">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100 mt-2">
+          🔍 Zobraziť
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
-<a href="{{ url_for('export', year=year, month=month) }}">Exportovať (Excel)</a>
+<div class="alert alert-info shadow-sm">
+  <strong>Celkom hodín za obdobie:</strong> {{ total }}
+</div>
 
-<table>
-<thead><tr><th>Dátum</th><th>Hodiny</th><th>Projekt</th><th>Poznámka</th></tr></thead>
-<tbody>
-{% for e in entries %}
-  <tr>
-    <td>{{ e.date }}</td>
-    <td>{{ e.hours }}</td>
-    <td>{{ e.project }}</td>
-    <td>{{ e.note }}</td>
-  </tr>
-{% endfor %}
-</tbody>
-</table>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title mb-3">📅 Záznamy</h5>
+
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead class="table-primary">
+          <tr>
+            <th>Dátum</th>
+            <th>Hodiny</th>
+            <th>Projekt</th>
+            <th>Poznámka</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+          <tr>
+            <td>{{ e.date }}</td>
+            <td><span class="badge bg-secondary">{{ e.hours }}</span></td>
+            <td>{{ e.project }}</td>
+            <td>{{ e.note }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center text-muted">Žiadne záznamy pre zvolené obdobie</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
