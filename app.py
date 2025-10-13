@@ -72,20 +72,7 @@ def admin_required(fn):
 # AUTOMATICKÉ VYTOVRENIE TABULIEK
 # ===============================
 with app.app_context():
-    db.create_all()  # PostgreSQL tabuľky sa vytvoria hneď pri štarte
-
-# ===============================
-# POMOCNÉ FUNKCIE
-# ===============================
-def week_of_month_expr(column):
-    """
-    SQLAlchemy výraz pre výpočet týždňa v mesiaci:
-    ((EXTRACT(DAY FROM date) + EXTRACT(DOW FROM first_day_of_month) - 1) / 7 + 1)
-    """
-    first_day = func.date_trunc('month', column)
-    dow_first = func.extract('dow', first_day)  # 0=Sunday
-    day = func.extract('day', column)
-    return func.floor((day + dow_first - 1) / 7 + 1)
+    db.create_all()
 
 # ROUTES
 @app.route('/')
@@ -119,7 +106,7 @@ def logout():
 def dashboard():
     month = request.args.get('month', type=int)
     year = request.args.get('year', type=int)
-    week = request.args.get('week', type=int)  # nový parameter
+    week = request.args.get('week', type=int)  # týždeň v roku
 
     now = datetime.utcnow()
     if not year:
@@ -129,14 +116,16 @@ def dashboard():
 
     query = TimeEntry.query.filter(TimeEntry.user_id == current_user.id)
 
-    if year:
-        query = query.filter(db.extract('year', TimeEntry.date) == year)
+    # filtrovanie podľa roku
+    query = query.filter(db.extract('year', TimeEntry.date) == year)
 
-    if month:
-        query = query.filter(db.extract('month', TimeEntry.date) == month)
-
+    # buď mesiac, alebo týždeň (ISO week)
     if week:
-        query = query.filter(week_of_month_expr(TimeEntry.date) == week)
+        # PostgreSQL: EXTRACT(ISOWEEK FROM date)
+        query = query.filter(func.extract('isodow', TimeEntry.date) == week)
+        query = query.filter(func.extract('week', TimeEntry.date) == week)
+    elif month:
+        query = query.filter(db.extract('month', TimeEntry.date) == month)
 
     entries = query.order_by(TimeEntry.date.desc()).all()
     total = sum(e.hours for e in entries)
@@ -289,3 +278,4 @@ def create_admin():
 # ===============================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
