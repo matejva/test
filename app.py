@@ -104,28 +104,30 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    month = request.args.get('month', type=int)
     year = request.args.get('year', type=int)
-    week = request.args.get('week', type=int)  # týždeň v roku
+    month = request.args.get('month', type=int)
+    week = request.args.get('week', type=int)
+    filter_type = request.args.get('filter_type')
 
     now = datetime.utcnow()
     if not year:
         year = now.year
-    if not month and not week:
-        month = now.month
 
     query = TimeEntry.query.filter(TimeEntry.user_id == current_user.id)
-
-    # filtrovanie podľa roku
     query = query.filter(db.extract('year', TimeEntry.date) == year)
 
-    # buď mesiac, alebo týždeň (ISO week)
-    if week:
-        # PostgreSQL: EXTRACT(ISOWEEK FROM date)
-        query = query.filter(func.extract('isodow', TimeEntry.date) == week)
+    if filter_type == 'week' and week:
+        # ISO týždeň v roku
         query = query.filter(func.extract('week', TimeEntry.date) == week)
-    elif month:
+        month = None  # zrušíme mesiac
+    elif filter_type == 'month' and month:
         query = query.filter(db.extract('month', TimeEntry.date) == month)
+        week = None  # zrušíme týždeň
+    else:
+        # predvolený mesiac, ak nič nevybrané
+        if not month and not week:
+            month = now.month
+            query = query.filter(db.extract('month', TimeEntry.date) == month)
 
     entries = query.order_by(TimeEntry.date.desc()).all()
     total = sum(e.hours for e in entries)
