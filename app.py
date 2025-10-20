@@ -122,16 +122,22 @@ def dashboard():
     total = sum(r.amount for r in records) if records else 0
     project_count = len(set(r.project_id for r in records)) if records else 0
 
-    # --- 🔹 Výkon podľa dátumu (pre line chart) ---
+      # --- 🔹 Výkon podľa dátumu (pre line chart) ---
     date_map = {}
     for r in records:
-        if not r.date:
+        if not r.date:  # ⚠️ ochrana proti None
+            app.logger.warning(f"Záznam bez dátumu: id={r.id}, projekt={r.project_id}")
             continue
-        date_map[r.date.strftime("%Y-%m-%d")] = date_map.get(r.date.strftime("%Y-%m-%d"), 0) + r.amount
+        # ak je dátum uložený ako string, nechaj tak
+        if isinstance(r.date, str):
+            key = r.date
+        else:
+            key = r.date.strftime("%Y-%m-%d")
+
+        date_map[key] = date_map.get(key, 0) + r.amount
 
     chart_labels = list(date_map.keys())
     chart_values = list(date_map.values())
-
     # --- 🔹 Výkon podľa projektu (spolu) ---
     project_map = {}
     for r in records:
