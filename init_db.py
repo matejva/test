@@ -1,11 +1,18 @@
-from app import db, User
-from app import app
+from app import db, User, app
+from werkzeug.security import generate_password_hash
 
 with app.app_context():
     try:
         db.create_all()  # vytvorí všetky tabuľky
-        if not User.query.filter_by(name="admin").first():
-            admin = User(name='admin', email='admin@example.com', password='admin123', is_admin=True)
+        admin = User.query.filter_by(name="admin").first()
+        if not admin:
+            hashed_pw = generate_password_hash("admin123")
+            admin = User(
+                name='admin',
+                email='admin@example.com',
+                password=hashed_pw,
+                is_admin=True
+            )
             db.session.add(admin)
             db.session.commit()
             print("✅ Admin user created (admin / admin123)")
