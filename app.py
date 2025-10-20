@@ -263,7 +263,27 @@ def export_pdf():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
 
-
+@app.route('/fix_admin')
+def fix_admin():
+    """Resetne heslo admina na admin123"""
+    try:
+        admin = User.query.filter_by(name='admin').first()
+        if admin:
+            admin.password = generate_password_hash('admin123')
+            db.session.commit()
+            return "✅ Admin heslo resetnuté na admin123"
+        else:
+            new_admin = User(
+                name='admin',
+                email='admin@example.com',
+                password=generate_password_hash('admin123'),
+                is_admin=True
+            )
+            db.session.add(new_admin)
+            db.session.commit()
+            return "✅ Admin účet vytvorený (admin / admin123)"
+    except Exception as e:
+        return f"❌ Chyba: {e}"
 
 # ---------- DB INIT ----------
 with app.app_context():
