@@ -281,7 +281,7 @@ def export_pdf():
 
 # ---------- USERS ----------
 @app.route('/users')
-def users():
+def users_list():
     user = session.get('user')
     if not user or not user.get('is_admin'):
         return redirect(url_for('login'))
