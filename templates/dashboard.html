@@ -2,59 +2,52 @@
 {% block content %}
 
 <style>
-/* 🌈 GLASSMORPHISM STYLE */
+/* 🌈 GLASSMORPHISM DASHBOARD */
 body {
-  background: linear-gradient(135deg, #dff6ff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #e3f2fd 0%, #f9fbff 100%);
   font-family: 'Inter', sans-serif;
 }
 
 .glass-card {
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
   background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 20px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-}
-
-.stat-card {
-  text-align: center;
-  padding: 20px;
-}
-
-.stat-card h2 {
-  font-size: 2rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .btn-glass {
   backdrop-filter: blur(10px);
-  background: rgba(0, 191, 166, 0.2);
+  background: rgba(0, 191, 166, 0.25);
   border: 1px solid rgba(0, 191, 166, 0.4);
   color: #006a58;
   transition: 0.3s;
 }
 
 .btn-glass:hover {
-  background: rgba(0, 191, 166, 0.35);
+  background: rgba(0, 191, 166, 0.4);
 }
 
 .chart-wrapper {
-  height: 300px;
+  height: 280px;
+}
+
+.table-hover tbody tr:hover {
+  background: rgba(0, 191, 166, 0.05);
 }
 </style>
 
 <div class="container-fluid py-3">
 
-  <!-- HEADER -->
+  <!-- HEADER + FILTERS -->
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-    <h2 class="fw-bold text-dark mb-0">
-      <i class="fa fa-chart-area text-primary me-2"></i> Dashboard
-    </h2>
+    <h2 class="fw-bold text-dark mb-0"><i class="fa fa-chart-area text-primary me-2"></i> Dashboard</h2>
 
     <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
       {% if user.is_admin %}
@@ -65,25 +58,32 @@ body {
         {% endfor %}
       </select>
       {% endif %}
+
       <select name="project_id" class="form-select glass-card">
         <option value="">📁 Všetky projekty</option>
         {% for p in projects %}
           <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
         {% endfor %}
       </select>
+
       <select name="unit_type" class="form-select glass-card">
         <option value="">🔢 Všetky jednotky</option>
         <option value="hodiny" {% if unit_type_filter == "hodiny" %}selected{% endif %}>Hodiny</option>
         <option value="m2" {% if unit_type_filter == "m2" %}selected{% endif %}>m²</option>
       </select>
 
-      <button type="submit" class="btn btn-glass">
-        <i class="fa fa-filter me-1"></i> Filtrovať
-      </button>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
-        <i class="fa fa-rotate-left me-1"></i> Reset
-      </a>
+      <button type="submit" class="btn btn-glass"><i class="fa fa-filter me-1"></i> Filtrovať</button>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary"><i class="fa fa-rotate-left me-1"></i> Reset</a>
     </form>
+
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+      <a href="{{ url_for('export_pdf', user_id=selected_user, project_id=selected_project) }}" class="btn btn-outline-danger">
+        <i class="fa fa-file-pdf me-1"></i> Exportovať PDF
+      </a>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+        <i class="fa fa-plus me-1"></i> Pridať záznam
+      </button>
+    </div>
   </div>
 
   <!-- STATS -->
@@ -103,26 +103,21 @@ body {
     </div>
   </div>
 
-  <!-- GRAPHS -->
+  <!-- CHARTS -->
   <div class="row g-4 mb-4">
     <div class="col-lg-6">
       <div class="glass-card p-4">
         <h6 class="fw-semibold mb-3"><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
         <div class="chart-wrapper">
-          <canvas id="hoursChart"
-            data-labels='{{ hours_labels|tojson }}'
-            data-values='{{ hours_values|tojson }}'></canvas>
+          <canvas id="hoursChart" data-labels='{{ hours_labels|tojson }}' data-values='{{ hours_values|tojson }}'></canvas>
         </div>
       </div>
     </div>
-
     <div class="col-lg-6">
       <div class="glass-card p-4">
         <h6 class="fw-semibold mb-3"><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
         <div class="chart-wrapper">
-          <canvas id="m2Chart"
-            data-labels='{{ m2_labels|tojson }}'
-            data-values='{{ m2_values|tojson }}'></canvas>
+          <canvas id="m2Chart" data-labels='{{ m2_labels|tojson }}' data-values='{{ m2_values|tojson }}'></canvas>
         </div>
       </div>
     </div>
@@ -133,67 +128,150 @@ body {
       <div class="glass-card p-4">
         <h6 class="fw-semibold mb-3"><i class="fa fa-calendar text-success me-2"></i> Výkon podľa dátumu</h6>
         <div class="chart-wrapper">
-          <canvas id="dateChart"
-            data-labels='{{ chart_labels|tojson }}'
-            data-values='{{ chart_values|tojson }}'></canvas>
+          <canvas id="dateChart" data-labels='{{ chart_labels|tojson }}' data-values='{{ chart_values|tojson }}'></canvas>
         </div>
       </div>
     </div>
-
     <div class="col-lg-6">
       <div class="glass-card p-4">
         <h6 class="fw-semibold mb-3"><i class="fa fa-chart-pie text-danger me-2"></i> Rozdelenie jednotiek</h6>
         <div class="chart-wrapper">
-          <canvas id="unitChart"
-            data-labels='{{ unit_labels|tojson }}'
-            data-values='{{ unit_values|tojson }}'></canvas>
+          <canvas id="unitChart" data-labels='{{ unit_labels|tojson }}' data-values='{{ unit_values|tojson }}'></canvas>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- RECORDS TABLE -->
+  <div class="glass-card p-4 shadow-sm mb-5">
+    <h5 class="fw-semibold mb-3">📋 Zoznam záznamov</h5>
+    {% if records %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Dátum</th>
+            <th>Projekt</th>
+            {% if user.is_admin %}<th>Používateľ</th>{% endif %}
+            <th>Množstvo</th>
+            <th>Jednotka</th>
+            <th>Poznámka</th>
+            {% if user.is_admin %}<th>Akcia</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.project.name if r.project else '—' }}</td>
+            {% if user.is_admin %}<td>{{ r.user.name if r.user else '—' }}</td>{% endif %}
+            <td>{{ "%.2f"|format(r.amount) }}</td>
+            <td>{{ r.unit_type or '' }}</td>
+            <td>{{ r.note or '' }}</td>
+            {% if user.is_admin %}
+            <td>
+              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" onsubmit="return confirm('Naozaj chceš zmazať tento záznam?')">
+                <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info mb-0">Žiadne záznamy na zobrazenie.</div>
+    {% endif %}
+  </div>
 </div>
 
-<!-- JS -->
+<!-- MODAL ADD RECORD -->
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content glass-card">
+      <form method="POST" action="{{ url_for('add_record') }}">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="addRecordModalLabel">Pridať záznam</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Projekt</label>
+            <select name="project_id" class="form-select" required>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dátum</label>
+            <input type="date" name="date" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Typ jednotky</label>
+            <select name="unit_type" class="form-select" required>
+              <option value="hodiny">Hodiny</option>
+              <option value="m2">m²</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Množstvo</label>
+            <input type="number" name="amount" step="0.1" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Poznámka</label>
+            <input type="text" name="note" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
+          <button type="submit" class="btn btn-primary">Uložiť</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS JS -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const makeGradient = (ctx, color1, color2) => {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, color1);
-    gradient.addColorStop(1, color2);
-    return gradient;
+    const g = ctx.createLinearGradient(0, 0, 0, 300);
+    g.addColorStop(0, color1);
+    g.addColorStop(1, color2);
+    return g;
   };
 
-  const makeChart = (id, type, color1, color2) => {
+  const makeChart = (id, type, c1, c2) => {
     const el = document.getElementById(id);
     if (!el) return;
     const ctx = el.getContext('2d');
-    const labels = JSON.parse(el.dataset.labels);
-    const data = JSON.parse(el.dataset.values);
+    const labels = JSON.parse(el.dataset.labels || "[]");
+    const data = JSON.parse(el.dataset.values || "[]");
     new Chart(ctx, {
-      type: type,
+      type,
       data: {
-        labels: labels,
+        labels,
         datasets: [{
-          data: data,
+          data,
           label: '',
-          backgroundColor: type === 'bar' || type === 'line' ? makeGradient(ctx, color1, color2) : [color1, color2, '#ffb74d', '#90caf9'],
-          borderColor: color1,
+          backgroundColor: type === 'doughnut' ? [c1, c2, '#ffd54f', '#81c784'] : makeGradient(ctx, c1, c2),
+          borderColor: c1,
+          borderWidth: 2,
           fill: true,
-          tension: 0.3,
-          borderWidth: 2
+          tension: 0.3
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: { display: type === 'doughnut' },
           tooltip: {
-            backgroundColor: 'rgba(255,255,255,0.8)',
+            backgroundColor: 'rgba(255,255,255,0.85)',
             titleColor: '#000',
-            bodyColor: '#000',
-            borderColor: '#ccc',
-            borderWidth: 1
+            bodyColor: '#000'
           }
         },
         scales: type !== 'doughnut' ? {
