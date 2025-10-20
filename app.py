@@ -1,19 +1,16 @@
+import os
+import io
+import logging
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-import logging
-import os
 
 # ---------- CONFIG ----------
 app = Flask(__name__)
-
-# Secret key from environment, fallback for dev
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 
-# Database URI from environment variable (Render)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     "DATABASE_URL",
     "postgresql://postgresdatabase_aeol_user:IUYLlFKRzHgCEzRwwxScNz1xMgfKdjTq@dpg-d3r0toodl3ps73ca6on0-a/postgresdatabase_aeol"
@@ -31,12 +28,15 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
+    records = db.relationship("Record", backref="user", lazy=True)
+    documents = db.relationship("Document", backref="user", lazy=True)
 
 class Project(db.Model):
     __tablename__ = "projects"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
+    unit_type = db.Column(db.String(10))
+    records = db.relationship("Record", backref="project", lazy=True)
 
 class Record(db.Model):
     __tablename__ = "records"
@@ -130,9 +130,8 @@ def project_detail(id):
     records = Record.query.filter_by(project_id=id).all()
     details = []
     for r in records:
-        u = User.query.get(r.user_id)
         details.append({
-            'user_name': u.name if u else 'Neznámy',
+            'user_name': r.user.name if r.user else 'Neznámy',
             'date': r.date,
             'amount': r.amount,
             'note': r.note
@@ -151,8 +150,7 @@ def export_pdf():
     y = 770
     records = Record.query.filter_by(user_id=user['id']).all()
     for r in records:
-        proj = Project.query.get(r.project_id)
-        line = f"{r.date} | {proj.name if proj else 'N/A'} | {r.amount} {proj.unit_type if proj else ''} | {r.note or ''}"
+        line = f"{r.date} | {r.project.name if r.project else 'N/A'} | {r.amount} {r.project.unit_type if r.project else ''} | {r.note or ''}"
         p.drawString(100, y, line)
         y -= 20
         if y < 50:
@@ -161,6 +159,29 @@ def export_pdf():
     p.save()
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
+
+@app.route('/users')
+def users():
+    user = session.get('user')
+    if not user or not user['is_admin']:
+        return redirect(url_for('login'))
+    all_users = User.query.all()
+    return render_template('users.html', users=all_users)
+
+@app.route('/documents', methods=['GET', 'POST'])
+def documents():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        file = request.files['file']
+        if file:
+            doc = Document(user_id=user['id'], filename=file.filename)
+            db.session.add(doc)
+            db.session.commit()
+            flash("Dokument nahraný!")
+    docs = Document.query.filter_by(user_id=user['id']).all()
+    return render_template('documents.html', documents=docs)
 
 # ---------- RUN ----------
 if __name__ == '__main__':
