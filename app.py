@@ -319,6 +319,43 @@ def create_user():
 
     return render_template('create_user.html', user=user)
 
+# ---------- DOCUMENTS ----------
+@app.route('/documents', methods=['GET', 'POST'])
+def documents():
+    session_user = session.get('user')
+    if not session_user:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if file and file.filename:
+            safe = secure_filename(file.filename)
+            fname = f"{session_user['id']}_{int(datetime.utcnow().timestamp())}_{safe}"
+            path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
+            file.save(path)
+            doc = Document(user_id=session_user['id'], filename=fname)
+            db.session.add(doc)
+            db.session.commit()
+            flash("Dokument nahraný!", "success")
+            return redirect(url_for('documents'))
+        flash("Nebolo možné nahrať súbor.", "danger")
+
+    user_docs = Document.query.filter_by(user_id=session_user['id']).all()
+    return render_template('documents.html', documents=user_docs)
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    session_user = session.get('user')
+    if not session_user:
+        return redirect(url_for('login'))
+
+    doc = Document.query.filter_by(filename=filename).first_or_404()
+    if not (session_user.get('is_admin') or doc.user_id == session_user['id']):
+        flash("Nemáte prístup k tomuto súboru.")
+        return redirect(url_for('documents'))
+
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 # ---------- DB INIT ----------
 with app.app_context():
