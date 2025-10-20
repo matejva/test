@@ -279,6 +279,46 @@ def export_pdf():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name="vykon_report.pdf", mimetype="application/pdf")
 
+# ---------- USERS ----------
+@app.route('/users')
+def users_list():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return redirect(url_for('login'))
+
+    all_users = User.query.order_by(User.name).all()
+    return render_template('users.html', users=all_users, user=user)
+
+
+@app.route('/create_user', methods=['GET', 'POST'])
+def create_user():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form.get('email')
+        password = request.form['password']
+        is_admin = bool(request.form.get('is_admin'))
+
+        if User.query.filter_by(name=name).first():
+            flash("Používateľ s týmto menom už existuje.", "danger")
+            return redirect(url_for('create_user'))
+
+        new_user = User(
+            name=name,
+            email=email,
+            password=generate_password_hash(password),
+            is_admin=is_admin
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        flash("✅ Používateľ bol vytvorený!", "success")
+        return redirect(url_for('users_list'))
+
+    return render_template('create_user.html', user=user)
+
 
 # ---------- DB INIT ----------
 with app.app_context():
