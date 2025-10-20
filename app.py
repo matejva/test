@@ -8,7 +8,7 @@ from reportlab.pdfgen import canvas
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-# Použiť environment variable pre databázu, fallback na SQLite lokálne
+# Použiť environment variable pre databázu, fallback na lokálne SQLite
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///hrc_navate.db")
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -18,25 +18,38 @@ logging.basicConfig(level=logging.DEBUG)
 
 # ---------- MODELY ----------
 class User(db.Model):
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
+    email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(50))
     role = db.Column(db.String(10))  # "admin" alebo "user"
 
+    @property
+    def name(self):
+        return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == "admin"
+
 class Project(db.Model):
+    __tablename__ = "projects"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
 
 class Record(db.Model):
+    __tablename__ = "records"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
     date = db.Column(db.String(20))
     amount = db.Column(db.Float)
     note = db.Column(db.String(200))
 
 class Document(db.Model):
+    __tablename__ = "documents"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     filename = db.Column(db.String(100))
@@ -46,7 +59,12 @@ with app.app_context():
     db.create_all()
     try:
         if not User.query.filter_by(username="admin").first():
-            db.session.add(User(username="admin", password="admin123", role="admin"))
+            db.session.add(User(
+                username="admin",
+                email="admin@example.com",
+                password="admin123",
+                role="admin"
+            ))
             db.session.commit()
             print("✅ Admin vytvorený (admin / admin123)")
     except Exception as e:
@@ -91,14 +109,11 @@ def add_record():
     user = session.get('user')
     if not user:
         return redirect('/')
-    # Bezpečný prevod amount
-    amount_raw = request.form.get('amount', 0)
     try:
-        amount = float(amount_raw)
+        amount = float(request.form.get('amount', 0))
     except ValueError:
         flash("Neplatná hodnota pre množstvo!")
         return redirect(url_for('dashboard'))
-
     rec = Record(
         user_id=user['id'],
         project_id=request.form['project_id'],
@@ -168,6 +183,14 @@ def project_detail(id):
         })
     return render_template('admin.html', project=proj, details=details)
 
+@app.route('/users')
+def users():
+    user = session.get('user')
+    if not user or user['role'] != 'admin':
+        return redirect('/')
+    all_users = User.query.all()
+    return render_template('user.html', users=all_users)
+
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
@@ -194,4 +217,3 @@ def export_pdf():
 # ---------- ŠTART ----------
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
-
