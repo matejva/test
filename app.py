@@ -113,7 +113,7 @@ def projects():
     if not user or not user['is_admin']:
         return redirect(url_for('login'))
     all_projects = Project.query.all()
-    return render_template('projekt.html', projects=all_projects)
+    return render_template('project.html', projects=all_projects)
 
 
 @app.route('/add_project', methods=['POST'])
