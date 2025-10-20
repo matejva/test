@@ -39,7 +39,7 @@
         <!-- Pracovníci - iba pre admina -->
         {% if session.get('user') and session['user']['is_admin'] %}
         <li>
-          <a href="{{ url_for('users') }}" class="{% if request.endpoint == 'users' %}active{% endif %}">
+          <a href="{{ url_for('users_list') }}" class="{% if request.endpoint == 'users_list' %}active{% endif %}">
             <i class="fa fa-users me-2"></i> Pracovníci
           </a>
         </li>
@@ -99,4 +99,3 @@
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
-
