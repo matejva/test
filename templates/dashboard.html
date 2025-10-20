@@ -23,6 +23,13 @@
         {% endfor %}
       </select>
 
+      <!-- 🔸 Filter podľa typu jednotky -->
+      <select name="unit_type" class="form-select">
+        <option value="">⚙️ Všetky jednotky</option>
+        <option value="hodiny" {% if unit_type_filter == 'hodiny' %}selected{% endif %}>Hodiny</option>
+        <option value="m2" {% if unit_type_filter == 'm2' %}selected{% endif %}>m²</option>
+      </select>
+
       <button type="submit" class="btn btn-outline-primary">
         <i class="fa fa-filter me-1"></i> Filtrovať
       </button>
@@ -64,13 +71,15 @@
 
   <!-- 🔹 Sekcia grafov -->
   <div class="row g-4 mb-5">
-    <div class="col-lg-6 col-md-12">
+
+    <!-- Výkon podľa dátumu -->
+    <div class="col-lg-4 col-md-12">
       <div class="card shadow-sm p-4 h-100">
         <div class="d-flex align-items-center mb-3">
           <i class="fa fa-chart-line text-primary me-2"></i>
           <h6 class="fw-semibold mb-0">Výkon podľa dátumu</h6>
         </div>
-        <div style="height: 280px;">
+        <div style="height: 250px;">
           <canvas id="hoursChart"
             data-labels='{{ chart_labels|tojson }}'
             data-values='{{ chart_values|tojson }}'></canvas>
@@ -78,17 +87,34 @@
       </div>
     </div>
 
-    <div class="col-lg-6 col-md-12">
+    <!-- Výkon podľa projektu -->
+    <div class="col-lg-4 col-md-12">
       <div class="card shadow-sm p-4 h-100 text-center">
         <div class="d-flex align-items-center justify-content-center mb-3">
           <i class="fa fa-chart-pie text-primary me-2"></i>
           <h6 class="fw-semibold mb-0">Výkon podľa projektu</h6>
         </div>
-        <div class="d-flex justify-content-center" style="height: 260px;">
+        <div class="d-flex justify-content-center" style="height: 250px;">
           <canvas id="projectChart"
             data-labels='{{ project_labels|tojson }}'
             data-values='{{ project_values|tojson }}'
-            style="max-width: 80%; max-height: 250px;"></canvas>
+            style="max-width: 80%; max-height: 230px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Výkon podľa typu jednotky -->
+    <div class="col-lg-4 col-md-12">
+      <div class="card shadow-sm p-4 h-100 text-center">
+        <div class="d-flex align-items-center justify-content-center mb-3">
+          <i class="fa fa-balance-scale text-primary me-2"></i>
+          <h6 class="fw-semibold mb-0">Výkon podľa typu jednotky</h6>
+        </div>
+        <div class="d-flex justify-content-center" style="height: 250px;">
+          <canvas id="unitTypeChart"
+            data-labels='{{ unit_labels|tojson }}'
+            data-values='{{ unit_values|tojson }}'
+            style="max-width: 80%; max-height: 230px;"></canvas>
         </div>
       </div>
     </div>
@@ -105,15 +131,11 @@
           <tr>
             <th>Dátum</th>
             <th>Projekt</th>
-            {% if user.is_admin %}
-            <th>Používateľ</th>
-            {% endif %}
+            {% if user.is_admin %}<th>Používateľ</th>{% endif %}
             <th>Množstvo</th>
             <th>Jednotka</th>
             <th>Poznámka</th>
-            {% if user.is_admin %}
-            <th>Akcia</th>
-            {% endif %}
+            {% if user.is_admin %}<th>Akcia</th>{% endif %}
           </tr>
         </thead>
         <tbody>
@@ -121,9 +143,7 @@
           <tr>
             <td>{{ r.date }}</td>
             <td>{{ r.project.name if r.project else '—' }}</td>
-            {% if user.is_admin %}
-            <td>{{ r.user.name if r.user else '—' }}</td>
-            {% endif %}
+            {% if user.is_admin %}<td>{{ r.user.name if r.user else '—' }}</td>{% endif %}
             <td>{{ "%.2f"|format(r.amount) }}</td>
             <td>{{ r.unit_type or '' }}</td>
             <td>{{ r.note or '' }}</td>
@@ -198,82 +218,37 @@
 <!-- 🔹 Grafy JS -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const hoursChartEl = document.getElementById('hoursChart');
-  if (hoursChartEl) {
-    const ctx = hoursChartEl.getContext('2d');
-    const labels = JSON.parse(hoursChartEl.dataset.labels || "[]");
-    const data = JSON.parse(hoursChartEl.dataset.values || "[]");
+  function renderChart(elId, type, label, bgColors) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const ctx = el.getContext('2d');
+    const labels = JSON.parse(el.dataset.labels || "[]");
+    const values = JSON.parse(el.dataset.values || "[]");
     new Chart(ctx, {
-      type: 'bar',
+      type: type,
       data: {
         labels: labels,
         datasets: [{
-          label: 'Výkon (hodiny / m²)',
-          data: data,
-          backgroundColor: 'rgba(0,191,166,0.8)',
-          borderRadius: 6,
-          barThickness: 30,
-          maxBarThickness: 40
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(220,220,220,0.3)' },
-            ticks: { color: '#555' }
-          },
-          x: {
-            grid: { display: false },
-            ticks: { color: '#777' }
-          }
-        }
-      }
-    });
-  }
-
-  const projectChartEl = document.getElementById('projectChart');
-  if (projectChartEl) {
-    const ctx2 = projectChartEl.getContext('2d');
-    const labels2 = JSON.parse(projectChartEl.dataset.labels || "[]");
-    const data2 = JSON.parse(projectChartEl.dataset.values || "[]");
-    new Chart(ctx2, {
-      type: 'doughnut',
-      data: {
-        labels: labels2,
-        datasets: [{
-          data: data2,
-          backgroundColor: [
-            '#00bfa6', '#4fc3f7', '#81c784', '#ffd54f', '#9575cd', '#e57373'
-          ],
-          borderWidth: 2,
+          label: label,
+          data: values,
+          backgroundColor: bgColors,
+          borderWidth: 1,
           borderColor: '#fff'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '75%',
-        layout: { padding: 10 },
-        plugins: {
-          legend: { 
-            position: 'bottom', 
-            labels: { boxWidth: 12, color: '#333', padding: 15 }
-          },
-          tooltip: {
-            backgroundColor: '#fff',
-            titleColor: '#000',
-            bodyColor: '#000',
-            borderColor: '#00bfa6',
-            borderWidth: 1
-          }
-        }
+        plugins: { legend: { position: 'bottom' } }
       }
     });
   }
+
+  renderChart('hoursChart', 'bar', 'Výkon (hodiny / m²)', ['rgba(0,191,166,0.8)']);
+  renderChart('projectChart', 'doughnut', 'Výkon podľa projektu', 
+              ['#00bfa6', '#4fc3f7', '#81c784', '#ffd54f', '#9575cd', '#e57373']);
+  renderChart('unitTypeChart', 'pie', 'Výkon podľa typu jednotky', 
+              ['#00bfa6', '#81c784', '#4fc3f7', '#ffb74d']);
 });
 </script>
 
