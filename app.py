@@ -5,13 +5,19 @@ import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import logging
+import os
 
 # ---------- CONFIG ----------
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
 
-# PostgreSQL database (your new Render DB)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgresdatabase_aeol_user:IUYLlFKRzHgCEzRwwxScNz1xMgfKdjTq@dpg-d3r0toodl3ps73ca6on0-a/postgresdatabase_aeol'
+# Secret key from environment, fallback for dev
+app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
+
+# Database URI from environment variable (Render)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://postgresdatabase_aeol_user:IUYLlFKRzHgCEzRwwxScNz1xMgfKdjTq@dpg-d3r0toodl3ps73ca6on0-a/postgresdatabase_aeol"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -155,18 +161,6 @@ def export_pdf():
     p.save()
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
-
-# ---------- DB INIT ----------
-with app.app_context():
-    try:
-        if not User.query.filter_by(name="admin").first():
-            db.create_all()
-            admin = User(name='admin', email='admin@example.com', password='admin123', is_admin=True)
-            db.session.add(admin)
-            db.session.commit()
-            print("✅ Admin user created (admin / admin123)")
-    except Exception as e:
-        print("❌ DB INIT ERROR:", e)
 
 # ---------- RUN ----------
 if __name__ == '__main__':
