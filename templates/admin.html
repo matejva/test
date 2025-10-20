@@ -2,13 +2,16 @@
 {% block content %}
 <h2>{{ project.name }} – Prehľad pracovníkov</h2>
 <table>
-  <tr><th>Pracovník</th><th>Množstvo</th><th>Poznámka</th></tr>
-  {% for r in records %}
+  <tr><th>Pracovník</th><th>Dátum</th><th>Množstvo</th><th>Poznámka</th></tr>
+  {% for r in details %}
   <tr>
-    <td>{{ r.user.name }}</td>
+    <td>{{ r.username }}</td>
+    <td>{{ r.date }}</td>
     <td>{{ r.amount }} {{ project.unit_type }}</td>
     <td>{{ r.note }}</td>
   </tr>
+  {% else %}
+  <tr><td colspan="4">Žiadne záznamy</td></tr>
   {% endfor %}
 </table>
 {% endblock %}
