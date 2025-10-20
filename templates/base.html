@@ -22,21 +22,30 @@
       </div>
 
       <ul class="nav flex-column">
+        <!-- Dashboard -->
         <li>
           <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
             <i class="fa fa-chart-line me-2"></i> Dashboard
           </a>
         </li>
+
+        <!-- Projekty -->
         <li>
           <a href="{{ url_for('projects') }}" class="{% if request.endpoint == 'projects' %}active{% endif %}">
             <i class="fa fa-briefcase me-2"></i> Projekty
           </a>
         </li>
+
+        <!-- Pracovníci - iba pre admina -->
+        {% if session.get('user') and session['user']['is_admin'] %}
         <li>
-          <a href="{{ url_for('users_list') }}" class="{% if request.endpoint == 'users_list' %}active{% endif %}">
+          <a href="{{ url_for('users') }}" class="{% if request.endpoint == 'users' %}active{% endif %}">
             <i class="fa fa-users me-2"></i> Pracovníci
           </a>
         </li>
+        {% endif %}
+
+        <!-- Dokumenty -->
         <li>
           <a href="{{ url_for('documents') }}" class="{% if request.endpoint == 'documents' %}active{% endif %}">
             <i class="fa fa-file-alt me-2"></i> Dokumenty
@@ -45,17 +54,22 @@
       </ul>
     </div>
 
+    <!-- Používateľský panel v sidebare -->
     {% if session.get('user') %}
     <div class="sidebar-user">
-      <img src="https://ui-avatars.com/api/?name={{ session['user']['name'] }}&background=00bfa6&color=fff" alt="user" class="avatar">
-      <div class="fw-semibold">{{ session['user']['name'] }}</div>
+      <img src="https://ui-avatars.com/api/?name={{ session['user']['name'] }}&background=00bfa6&color=fff"
+           alt="user" class="avatar">
+
+      <div class="fw-semibold mt-2">{{ session['user']['name'] }}</div>
+
       {% if session['user']['is_admin'] %}
         <span class="badge bg-success mt-1">Admin</span>
       {% else %}
         <span class="badge bg-secondary mt-1">User</span>
       {% endif %}
-      <div class="mt-2">
-        <a href="{{ url_for('logout') }}" class="text-warning small">
+
+      <div class="mt-3">
+        <a href="{{ url_for('logout') }}" class="text-warning small text-decoration-none">
           <i class="fa fa-sign-out-alt me-1"></i> Odhlásiť sa
         </a>
       </div>
@@ -85,3 +99,4 @@
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
+
