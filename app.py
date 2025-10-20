@@ -92,9 +92,12 @@ def dashboard():
     if not session_user:
         return redirect(url_for('login'))
 
+    # --- získanie filtrov z URL ---
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
+    unit_type_filter = request.args.get('unit_type')  # nový filter
 
+    # --- query builder ---
     query = Record.query
     if session_user.get('is_admin'):
         if selected_user:
@@ -105,6 +108,10 @@ def dashboard():
     if selected_project:
         query = query.filter_by(project_id=selected_project)
 
+    if unit_type_filter:  # ✅ nový filter
+        query = query.filter_by(unit_type=unit_type_filter)
+
+    # --- načítanie dát ---
     records = query.order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
     users = User.query.order_by(User.name).all() if session_user.get('is_admin') else []
@@ -112,14 +119,14 @@ def dashboard():
     total = sum([r.amount for r in records]) if records else 0
     project_count = len(set(r.project_id for r in records)) if records else 0
 
-    # Výkon podľa dní
+    # --- Výkon podľa dní ---
     date_map = {}
     for r in records:
         date_map[r.date] = date_map.get(r.date, 0) + r.amount
     chart_labels = list(date_map.keys())
     chart_values = list(date_map.values())
 
-    # Výkon podľa projektu
+    # --- Výkon podľa projektu ---
     project_map = {}
     for r in records:
         pname = r.project.name if r.project else "Neznámy projekt"
@@ -127,6 +134,15 @@ def dashboard():
     project_labels = list(project_map.keys())
     project_values = list(project_map.values())
 
+    # --- Výkon podľa typu jednotky (NOVÉ) ---
+    unit_map = {}
+    for r in records:
+        utype = r.unit_type or "Neznáme"
+        unit_map[utype] = unit_map.get(utype, 0) + r.amount
+    unit_labels = list(unit_map.keys())
+    unit_values = list(unit_map.values())
+
+    # --- render ---
     return render_template(
         'dashboard.html',
         user=session_user,
@@ -139,8 +155,11 @@ def dashboard():
         chart_values=chart_values,
         project_labels=project_labels,
         project_values=project_values,
+        unit_labels=unit_labels,          # ✅ nové dáta pre graf
+        unit_values=unit_values,          # ✅ nové dáta pre graf
         selected_user=selected_user,
-        selected_project=selected_project
+        selected_project=selected_project,
+        unit_type_filter=unit_type_filter  # ✅ filter pre HTML
     )
 
 
