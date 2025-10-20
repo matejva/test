@@ -1,17 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>{{ project.name }} – Prehľad pracovníkov</h2>
+<h2>Detail projektu: {{ project.name }}</h2>
 <table>
-  <tr><th>Pracovník</th><th>Dátum</th><th>Množstvo</th><th>Poznámka</th></tr>
-  {% for r in details %}
-  <tr>
-    <td>{{ r.user_name }}</td>
-    <td>{{ r.date }}</td>
-    <td>{{ r.amount }} {{ project.unit_type }}</td>
-    <td>{{ r.note }}</td>
-  </tr>
-  {% else %}
-  <tr><td colspan="4">Žiadne záznamy</td></tr>
-  {% endfor %}
+    <tr>
+        <th>Používateľ</th>
+        <th>Dátum</th>
+        <th>Množstvo</th>
+        <th>Poznámka</th>
+    </tr>
+    {% for d in details %}
+    <tr>
+        <td>{{ d.username }}</td>
+        <td>{{ d.date }}</td>
+        <td>{{ d.amount }}</td>
+        <td>{{ d.note }}</td>
+    </tr>
+    {% endfor %}
 </table>
 {% endblock %}
