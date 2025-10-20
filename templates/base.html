@@ -12,12 +12,22 @@
     <nav>
       <a href="{{ url_for('dashboard') }}">Dashboard</a>
       {% if session.get('user') and session['user']['is_admin'] %}
-      <a href="{{ url_for('projects_page') }}">Projekty</a>
+      <a href="{{ url_for('projects') }}">Projekty</a>
+      <a href="{{ url_for('users_list') }}">Užívatelia</a>
       {% endif %}
       <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
     </nav>
   </header>
   <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for msg in messages %}
+          <li>{{ msg }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </main>
 </body>
