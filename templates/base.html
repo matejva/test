@@ -1,47 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sk">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{{ title or 'HRC & Navate' }}</title>
-
-  <!-- Bootstrap 5 -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "HRC & Navate" }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Custom style -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
-
-<nav class="navbar navbar-expand-lg navbar-dark header-glass">
-  <div class="container-fluid">
-    <a class="navbar-brand ms-3" href="{{ url_for('dashboard') }}">
-      <span class="brand-logo">HRC &amp; Navate</span>
-    </a>
-    <div class="collapse navbar-collapse justify-content-end">
-      {% if session.user %}
-        <div class="me-3 text-white">Ahoj, <strong>{{ session.user.name }}</strong></div>
-        <a class="btn btn-outline-light me-3" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Odhlásiť</a>
+<body>
+<div class="d-flex">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h3>HRC & Navate</h3>
+    </div>
+    <ul class="nav flex-column">
+      <li><a href="{{ url_for('dashboard') }}"><i class="fa fa-chart-bar"></i> Dashboard</a></li>
+      <li><a href="{{ url_for('projects') }}"><i class="fa fa-briefcase"></i> Projekty</a></li>
+      <li><a href="{{ url_for('users_list') }}"><i class="fa fa-users"></i> Pracovníci</a></li>
+      <li><a href="{{ url_for('documents') }}"><i class="fa fa-folder-open"></i> Dokumenty</a></li>
+      <li><a href="{{ url_for('logout') }}"><i class="fa fa-sign-out-alt"></i> Odhlásiť sa</a></li>
+    </ul>
+    <div class="sidebar-user">
+      {% if session.get('user') %}
+        <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="user" class="avatar">
+        <div>{{ session['user']['name'] }}</div>
       {% endif %}
     </div>
-  </div>
-</nav>
+  </nav>
 
-<main class="container my-4">
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="mb-3">
-        {% for m in messages %}
-          <div class="alert alert-success">{{ m }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-  {% block content %}{% endblock %}
-</main>
+  <!-- Content -->
+  <div class="main">
+    {% block content %}{% endblock %}
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
