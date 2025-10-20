@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold"><i class="bi bi-kanban me-2"></i>{{ project.name }}</h3>
+    <div>
+      <a href="{{ url_for('projects') }}" class="btn btn-outline-secondary me-2">
+        <i class="bi bi-arrow-left"></i> Späť na projekty
+      </a>
+      <a href="{{ url_for('export_pdf') }}" class="btn btn-outline-success">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </a>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs mb-3" id="projectTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="records-tab" data-bs-toggle="tab" data-bs-target="#records" type="button" role="tab">Záznamy</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">Sumár</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">Dokumenty</button>
+    </li>
+  </ul>
+
+  <!-- Tabs Content -->
+  <div class="tab-content" id="projectTabContent">
+
+    <!-- Záznamy Tab -->
+    <div class="tab-pane fade show active" id="records" role="tabpanel" aria-labelledby="records-tab">
+      <div class="card glass-card p-4 mb-4 shadow-sm">
+        {% if details %}
+        <div class="table-responsive">
+          <table class="table align-middle table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Používateľ</th>
+                <th>Dátum</th>
+                <th>Množstvo ({{ project.unit_type }})</th>
+                <th>Poznámka</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in details %}
+              <tr>
+                <td>{{ r.username }}</td>
+                <td>{{ r.date }}</td>
+                <td>{{ r.amount }}</td>
+                <td>{{ r.note }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">Zatiaľ neexistujú žiadne záznamy pre tento projekt.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Sumár Tab -->
+    <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+      <div class="card glass-card p-4 shadow-sm">
+        <h5 class="mb-3"><i class="bi bi-bar-chart-line"></i> Sumár podľa používateľov</h5>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Používateľ</th>
+                <th>Hodiny</th>
+                <th>m²</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in per_user %}
+              <tr>
+                <td>{{ u.user }}</td>
+                <td>{{ u.h }}</td>
+                <td>{{ u.m2 }}</td>
+              </tr>
+              {% endfor %}
+              <tr class="fw-bold">
+                <td>Celkom</td>
+                <td>{{ total_h }}</td>
+                <td>{{ total_m2 }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dokumenty Tab -->
+    <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+      <div class="card glass-card p-4 shadow-sm">
+        <h5 class="mb-3"><i class="bi bi-folder"></i> Dokumenty k projektu</h5>
+        {% if project.documents %}
+        <ul class="list-group">
+          {% for doc in project.documents %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ doc.filename }}
+            <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-download"></i> Stiahnuť
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted text-center my-4">Pre tento projekt neboli nahrané žiadne dokumenty.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
