@@ -3,9 +3,9 @@
 <h2>{{ project.name }} – Prehľad pracovníkov</h2>
 <table>
   <tr><th>Pracovník</th><th>Množstvo</th><th>Poznámka</th></tr>
-  {% for r in records %}
+  {% for r in details %}
   <tr>
-    <td>{{ r.user_id }}</td>
+    <td>{{ r.username }}</td>
     <td>{{ r.amount }} {{ project.unit_type }}</td>
     <td>{{ r.note }}</td>
   </tr>
