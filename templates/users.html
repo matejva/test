@@ -1,16 +1,36 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Užívatelia</h2>
-<table>
-  <tr><th>Meno</th><th>Email</th><th>Admin</th></tr>
-  {% for u in users %}
-  <tr>
-    <td>{{ u.name }}</td>
-    <td>{{ u.email }}</td>
-    <td>{% if u.is_admin %}Áno{% else %}Nie{% endif %}</td>
-  </tr>
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">Používatelia</h3>
+    <a href="{{ url_for('create_user') }}" class="btn btn-primary">
+      <i class="fa fa-user-plus me-2"></i> Pridať používateľa
+    </a>
+  </div>
+
+  {% if users %}
+  <div class="row">
+    {% for u in users %}
+    <div class="col-md-4 col-lg-3 mb-4">
+      <div class="card user-card shadow-sm">
+        <div class="card-body text-center">
+          <div class="avatar-circle bg-gradient mb-3">
+            <span class="initials">{{ u.name[:2]|upper }}</span>
+          </div>
+          <h5 class="fw-bold mb-1">{{ u.name }}</h5>
+          <p class="text-muted mb-2 small">{{ u.email or 'Bez e-mailu' }}</p>
+          {% if u.is_admin %}
+            <span class="badge bg-success px-3 py-2">Admin</span>
+          {% else %}
+            <span class="badge bg-secondary px-3 py-2">Používateľ</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% else %}
-  <tr><td colspan="3">Žiadni používatelia</td></tr>
-  {% endfor %}
-</table>
+  <div class="alert alert-info">Žiadni používatelia neboli nájdení.</div>
+  {% endif %}
+</div>
 {% endblock %}
