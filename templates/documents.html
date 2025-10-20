@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Dokumenty</h2>
-<form action="{{ url_for('documents') }}" method="POST" enctype="multipart/form-data">
-  <input type="file" name="file" required>
-  <button type="submit">Nahrať</button>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button type="submit">Nahrať dokument</button>
 </form>
 
-{% if documents %}
-<h3>Moje nahrané dokumenty</h3>
 <ul>
-  {% for d in documents %}
-    <li>{{ d.filename }}</li>
-  {% endfor %}
+    {% for doc in documents %}
+        <li>{{ doc.filename }}</li>
+    {% endfor %}
 </ul>
-{% endif %}
 {% endblock %}
