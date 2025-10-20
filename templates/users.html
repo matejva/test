@@ -2,6 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="fw-bold mb-0">👥 Užívatelia</h2>
+  <a href="{{ url_for('create_user') }}">+ Pridať používateľa</a>
 </div>
 
 <div class="card shadow-sm">
@@ -18,7 +19,7 @@
         <tbody>
           {% for u in users %}
           <tr>
-            <td>{{ u.name }}</td>
+            <td>{{ u.username }}</td>
             <td>{{ u.email }}</td>
             <td>
               {% if u.is_admin %}
