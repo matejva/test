@@ -37,11 +37,13 @@ class User(db.Model):
     password = db.Column(db.String(200))
     is_admin = db.Column(db.Boolean, default=False)
 
+
 class Project(db.Model):
     __tablename__ = "projects"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
+
 
 class Record(db.Model):
     __tablename__ = "records"
@@ -54,6 +56,7 @@ class Record(db.Model):
     user = db.relationship("User", backref="records")
     project = db.relationship("Project", backref="records")
 
+
 class Document(db.Model):
     __tablename__ = "documents"
     id = db.Column(db.Integer, primary_key=True)
@@ -61,10 +64,12 @@ class Document(db.Model):
     filename = db.Column(db.String(200))
     user = db.relationship("User", backref="documents")
 
+
 # ---------- ROUTES ----------
 @app.route('/')
 def login():
     return render_template('login.html')
+
 
 @app.route('/login', methods=['POST'])
 def do_login():
@@ -74,28 +79,43 @@ def do_login():
     if user and check_password_hash(user.password, password):
         session['user'] = {'id': user.id, 'name': user.name, 'is_admin': user.is_admin}
         return redirect(url_for('dashboard'))
-    return render_template('login.html', error="Zlé meno alebo heslo")
+    flash("Zlé meno alebo heslo", "danger")
+    return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
+
 @app.route('/dashboard')
 def dashboard():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
+
     records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
     total = sum([r.amount for r in records]) if records else 0
-    return render_template('dashboard.html', user=user, records=records, projects=projects, total=total)
+
+    # ✅ dôležité — pridávame datetime, aby fungoval v Jinja2
+    return render_template(
+        'dashboard.html',
+        user=user,
+        records=records,
+        projects=projects,
+        total=total,
+        datetime=datetime
+    )
+
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
+
     rec = Record(
         user_id=user['id'],
         project_id=int(request.form['project_id']),
@@ -105,8 +125,9 @@ def add_record():
     )
     db.session.add(rec)
     db.session.commit()
-    flash("Záznam pridaný!")
+    flash("✅ Záznam pridaný!", "success")
     return redirect(url_for('dashboard'))
+
 
 @app.route('/entry/<int:id>/json')
 def entry_json(id):
@@ -125,6 +146,7 @@ def entry_json(id):
         'note': r.note or ''
     })
 
+
 @app.route('/entry/update', methods=['POST'])
 def entry_update():
     user = session.get('user')
@@ -133,15 +155,16 @@ def entry_update():
     rid = int(request.form.get('id'))
     r = Record.query.get_or_404(rid)
     if r.user_id != user['id'] and not user.get('is_admin'):
-        flash("Nemáte oprávnenie upraviť tento záznam.")
+        flash("Nemáte oprávnenie upraviť tento záznam.", "danger")
         return redirect(url_for('dashboard'))
     r.project_id = int(request.form.get('project_id'))
     r.date = request.form.get('date')
     r.amount = float(request.form.get('amount') or 0)
     r.note = request.form.get('note')
     db.session.commit()
-    flash("Záznam upravený.")
+    flash("✅ Záznam upravený.", "success")
     return redirect(url_for('dashboard'))
+
 
 @app.route('/delete_record/<int:id>', methods=['POST'])
 def delete_record(id):
@@ -150,12 +173,13 @@ def delete_record(id):
         return redirect(url_for('login'))
     r = Record.query.get_or_404(id)
     if r.user_id != user['id'] and not user.get('is_admin'):
-        flash("Nemáte oprávnenie zmazať tento záznam.")
+        flash("Nemáte oprávnenie zmazať tento záznam.", "danger")
         return redirect(url_for('dashboard'))
     db.session.delete(r)
     db.session.commit()
-    flash("Záznam zmazaný.")
+    flash("🗑️ Záznam zmazaný.", "info")
     return redirect(url_for('dashboard'))
+
 
 @app.route('/projects')
 def projects():
@@ -164,6 +188,7 @@ def projects():
         return redirect(url_for('login'))
     all_projects = Project.query.order_by(Project.name).all()
     return render_template('project.html', projects=all_projects)
+
 
 @app.route('/add_project', methods=['POST'])
 def add_project():
@@ -175,8 +200,9 @@ def add_project():
     p = Project(name=name, unit_type=unit_type)
     db.session.add(p)
     db.session.commit()
-    flash("Projekt pridaný.")
+    flash("✅ Projekt pridaný.", "success")
     return redirect(url_for('projects'))
+
 
 @app.route('/project/<int:id>')
 def project_detail(id):
@@ -200,6 +226,7 @@ def project_detail(id):
     total_m2 = sum(x['m2'] for x in per_user)
     return render_template('project_detail.html', project=proj, details=details, per_user=per_user, total_h=total_h, total_m2=total_m2)
 
+
 @app.route('/users')
 def users_list():
     user = session.get('user')
@@ -207,6 +234,37 @@ def users_list():
         return redirect(url_for('login'))
     all_users = User.query.order_by(User.name).all()
     return render_template('users.html', users=all_users)
+
+
+@app.route('/create_user', methods=['GET', 'POST'])
+def create_user():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form.get('email')
+        password = request.form['password']
+        is_admin = bool(request.form.get('is_admin'))
+
+        if User.query.filter_by(name=name).first():
+            flash("Používateľ s týmto menom už existuje.", "danger")
+            return redirect(url_for('create_user'))
+
+        new_user = User(
+            name=name,
+            email=email,
+            password=generate_password_hash(password),
+            is_admin=is_admin
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        flash("✅ Používateľ bol úspešne vytvorený!", "success")
+        return redirect(url_for('users_list'))
+
+    return render_template('create_user.html')
+
 
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
@@ -223,11 +281,12 @@ def documents():
             doc = Document(user_id=user['id'], filename=fname)
             db.session.add(doc)
             db.session.commit()
-            flash("Dokument nahraný!")
+            flash("📄 Dokument nahraný!", "success")
             return redirect(url_for('documents'))
         flash("Nebolo možné nahrať súbor.", "danger")
     user_docs = Document.query.filter_by(user_id=user['id']).all()
     return render_template('documents.html', documents=user_docs)
+
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -236,9 +295,10 @@ def uploaded_file(filename):
         return redirect(url_for('login'))
     doc = Document.query.filter_by(filename=filename).first_or_404()
     if not (user.get('is_admin') or doc.user_id == user['id']):
-        flash("Nemáte prístup k tomuto súboru.")
+        flash("Nemáte prístup k tomuto súboru.", "danger")
         return redirect(url_for('documents'))
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 @app.route('/export/pdf')
 def export_pdf():
@@ -263,36 +323,17 @@ def export_pdf():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
 
-@app.route('/create_user', methods=['GET', 'POST'])
-def create_user():
-    user = session.get('user')
-    if not user or not user.get('is_admin'):
-        return redirect(url_for('login'))
 
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form.get('email')
-        password = request.form['password']
-        is_admin = bool(request.form.get('is_admin'))
-
-        # Overenie duplicity mena
-        if User.query.filter_by(name=name).first():
-            flash("Používateľ s týmto menom už existuje.", "danger")
-            return redirect(url_for('create_user'))
-
-        # Vytvorenie používateľa
-        new_user = User(
-            name=name,
-            email=email,
-            password=generate_password_hash(password),
-            is_admin=is_admin
-        )
-        db.session.add(new_user)
+@app.route('/fix_admin')
+def fix_admin():
+    admin = User.query.filter_by(name='admin').first()
+    if admin:
+        admin.password = generate_password_hash('admin123')
         db.session.commit()
-        flash("✅ Používateľ bol úspešne vytvorený!", "success")
-        return redirect(url_for('users_list'))
+        return "✅ Admin heslo resetnuté na admin123"
+    else:
+        return "❌ Admin neexistuje"
 
-    return render_template('create_user.html')
 
 # ---------- DB INIT ----------
 with app.app_context():
@@ -308,8 +349,8 @@ with app.app_context():
         db.session.commit()
         app.logger.info("✅ Admin user created (admin / admin123)")
 
+
 # ---------- RUN ----------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
