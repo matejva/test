@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import logging
 import os
+from werkzeug.utils import secure_filename
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -36,6 +37,7 @@ class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
+    description = db.Column(db.String(200), nullable=True)  # nový atribút
 
 class Record(db.Model):
     __tablename__ = "records"
@@ -80,7 +82,6 @@ def dashboard():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
-    # show only this week's records by default — simple approach: show all for now
     records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
     total = sum([r.amount for r in records]) if records else 0
@@ -110,7 +111,6 @@ def entry_json(id):
     if not user:
         return jsonify({'error': 'not logged'}), 401
     r = Record.query.get_or_404(id)
-    # only owner or admin can fetch
     if r.user_id != user['id'] and not user.get('is_admin'):
         return jsonify({'error': 'forbidden'}), 403
     return jsonify({
@@ -132,7 +132,6 @@ def entry_update():
     if r.user_id != user['id'] and not user.get('is_admin'):
         flash("Nemáte oprávnenie upraviť tento záznam.")
         return redirect(url_for('dashboard'))
-    # update
     r.project_id = int(request.form.get('project_id'))
     r.date = request.form.get('date')
     r.amount = float(request.form.get('amount') or 0)
@@ -155,6 +154,7 @@ def delete_record(id):
     flash("Záznam zmazaný.")
     return redirect(url_for('dashboard'))
 
+# ---------- PROJECT ROUTES ----------
 @app.route('/projects')
 def projects():
     user = session.get('user')
@@ -170,7 +170,8 @@ def add_project():
         return redirect(url_for('login'))
     name = request.form['name']
     unit_type = request.form['unit_type']
-    p = Project(name=name, unit_type=unit_type)
+    description = request.form.get('description')
+    p = Project(name=name, unit_type=unit_type, description=description)
     db.session.add(p)
     db.session.commit()
     flash("Projekt pridaný.")
@@ -183,7 +184,6 @@ def project_detail(id):
         return redirect(url_for('login'))
     proj = Project.query.get_or_404(id)
     records = Record.query.filter_by(project_id=id).order_by(Record.date.desc()).all()
-    # aggregate per user
     details = []
     agg = {}
     for r in records:
@@ -199,6 +199,35 @@ def project_detail(id):
     total_m2 = sum(x['m2'] for x in per_user)
     return render_template('project_detail.html', project=proj, details=details, per_user=per_user, total_h=total_h, total_m2=total_m2)
 
+# JSON endpoint for project (edit modal)
+@app.route('/project/<int:id>/json')
+def project_json(id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return jsonify({'error': 'not authorized'}), 401
+    proj = Project.query.get_or_404(id)
+    return jsonify({
+        'id': proj.id,
+        'name': proj.name,
+        'unit_type': proj.unit_type,
+        'description': proj.description or ''
+    })
+
+@app.route('/update_project', methods=['POST'])
+def update_project():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return redirect(url_for('login'))
+    pid = int(request.form.get('id'))
+    proj = Project.query.get_or_404(pid)
+    proj.name = request.form.get('name')
+    proj.unit_type = request.form.get('unit_type')
+    proj.description = request.form.get('description')
+    db.session.commit()
+    flash("Projekt upravený.")
+    return redirect(url_for('projects'))
+
+# ---------- USERS ----------
 @app.route('/users')
 def users_list():
     user = session.get('user')
@@ -207,6 +236,7 @@ def users_list():
     all_users = User.query.order_by(User.name).all()
     return render_template('users.html', users=all_users)
 
+# ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
     user = session.get('user')
@@ -240,6 +270,7 @@ def uploaded_file(filename):
         return redirect(url_for('documents'))
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# ---------- PDF EXPORT ----------
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
