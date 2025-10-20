@@ -177,6 +177,21 @@ def projects():
     all_projects = Project.query.order_by(Project.name).all()
     return render_template('project.html', projects=all_projects, user=user)
 
+@app.route('/add_project', methods=['POST'])
+def add_project():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return redirect(url_for('login'))
+
+    name = request.form['name']
+    unit_type = request.form['unit_type']
+
+    project = Project(name=name, unit_type=unit_type)
+    db.session.add(project)
+    db.session.commit()
+    flash("✅ Projekt pridaný!", "success")
+    return redirect(url_for('projects'))
+
 
 # ---------- USERS ----------
 @app.route('/users')
