@@ -1,8 +1,7 @@
-// Spustenie až po načítaní DOM
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Frontend HRC & Navate načítaný ✅");
 
-  // Ak je Bootstrap modal k dispozícii
+  // ======== Modal na editáciu ========
   const editModalEl = document.getElementById('editModal');
   let editModal;
   if (editModalEl) {
@@ -15,22 +14,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!form) return;
 
     // Naplnenie formulára údajmi
-    form.action = '/entry/update';
     form.querySelector('input[name="id"]').value = id;
     form.querySelector('select[name="project_id"]').value = projectId;
     form.querySelector('input[name="amount"]').value = amount;
-    form.querySelector('input[name="note"]').value = note;
+    form.querySelector('textarea[name="note"]').value = note;
 
     // Zobrazenie modálu
     if (editModal) editModal.show();
   };
 
-  // Ak máš graf na dashboarde, inicializuj Chart.js
+  // ======== (Voliteľné) Chart.js ========
   const hoursChartEl = document.getElementById('hoursChart');
   if (hoursChartEl) {
     const ctx = hoursChartEl.getContext('2d');
-    const labels = hoursChartEl.dataset.labels ? JSON.parse(hoursChartEl.dataset.labels) : [];
-    const data = hoursChartEl.dataset.values ? JSON.parse(hoursChartEl.dataset.values) : [];
+    const labels = JSON.parse(hoursChartEl.dataset.labels || "[]");
+    const data = JSON.parse(hoursChartEl.dataset.values || "[]");
     new Chart(ctx, {
       type: 'bar',
       data: {
