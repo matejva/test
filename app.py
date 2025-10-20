@@ -1,14 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-import io, logging
+import io, logging, os, traceback
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 # ---------- ZÁKLADNÁ KONFIGURÁCIA ----------
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hrc_navate.db'
+
+# Použiť ENV pre databázu (Render.com) alebo fallback na lokálnu SQLite
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///hrc_navate.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -50,6 +53,12 @@ with app.app_context():
     except Exception as e:
         print("❌ DB INIT ERROR:", e)
 
+# ---------- ERROR HANDLER ----------
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logging.error("Exception: %s", traceback.format_exc())
+    return "Internal Server Error - check logs", 500
+
 # ---------- ROUTY ----------
 @app.route('/')
 def login():
@@ -75,8 +84,6 @@ def dashboard():
         return redirect('/')
     records = Record.query.filter_by(user_id=user['id']).all()
     projects = Project.query.all()
-
-    # Automatický súčet za týždeň
     total = sum([r.amount for r in records])
     return render_template('dashboard.html', user=user, records=records, projects=projects, total=total)
 
@@ -85,11 +92,19 @@ def add_record():
     user = session.get('user')
     if not user:
         return redirect('/')
+    # Bezpečný prevod amount
+    amount_raw = request.form.get('amount', 0)
+    try:
+        amount = float(amount_raw)
+    except ValueError:
+        flash("Neplatná hodnota pre množstvo!")
+        return redirect(url_for('dashboard'))
+
     rec = Record(
         user_id=user['id'],
         project_id=request.form['project_id'],
         date=request.form['date'],
-        amount=request.form['amount'],
+        amount=amount,
         note=request.form['note']
     )
     db.session.add(rec)
@@ -105,7 +120,11 @@ def edit_record(id):
     rec = Record.query.get(id)
     if rec and rec.user_id == user['id']:
         rec.project_id = request.form['project_id']
-        rec.amount = request.form['amount']
+        try:
+            rec.amount = float(request.form['amount'])
+        except ValueError:
+            flash("Neplatná hodnota pre množstvo!")
+            return redirect(url_for('dashboard'))
         rec.note = request.form['note']
         db.session.commit()
         flash("Záznam upravený.")
@@ -139,7 +158,6 @@ def project_detail(id):
         return redirect('/')
     proj = Project.query.get(id)
     records = Record.query.filter_by(project_id=id).all()
-    # Získaj mená pracovníkov
     details = []
     for r in records:
         u = User.query.get(r.user_id)
@@ -177,3 +195,4 @@ def export_pdf():
 # ---------- ŠTART ----------
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
+
