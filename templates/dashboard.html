@@ -2,180 +2,212 @@
 {% block content %}
 
 <style>
-  .stat-card {
-    border: none;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #00bfa6 0%, #4fc3f7 100%);
-    color: white;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    transition: 0.3s;
-  }
-  .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-  }
-  .glass-card {
-    backdrop-filter: blur(12px);
-    border-radius: 16px;
-    background: rgba(255,255,255,0.75);
-    border: 1px solid rgba(255,255,255,0.3);
-  }
-  .chart-card {
-    border-radius: 16px;
-    background: white;
-    border: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  }
-  .chart-container {
-    height: 280px;
-  }
+/* 🌈 GLASSMORPHISM STYLE */
+body {
+  background: linear-gradient(135deg, #dff6ff 0%, #ffffff 100%);
+  font-family: 'Inter', sans-serif;
+}
+
+.glass-card {
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.stat-card h2 {
+  font-size: 2rem;
+}
+
+.btn-glass {
+  backdrop-filter: blur(10px);
+  background: rgba(0, 191, 166, 0.2);
+  border: 1px solid rgba(0, 191, 166, 0.4);
+  color: #006a58;
+  transition: 0.3s;
+}
+
+.btn-glass:hover {
+  background: rgba(0, 191, 166, 0.35);
+}
+
+.chart-wrapper {
+  height: 300px;
+}
 </style>
 
-<div class="container-fluid">
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-    <h3 class="fw-bold mb-0">📊 Výkonový Dashboard</h3>
+<div class="container-fluid py-3">
 
-    <!-- Filters -->
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h2 class="fw-bold text-dark mb-0">
+      <i class="fa fa-chart-area text-primary me-2"></i> Dashboard
+    </h2>
+
     <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
       {% if user.is_admin %}
-      <select name="user_id" class="form-select shadow-sm">
+      <select name="user_id" class="form-select glass-card">
         <option value="">👤 Všetci používatelia</option>
         {% for u in users %}
           <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>{{ u.name }}</option>
         {% endfor %}
       </select>
       {% endif %}
-      <select name="project_id" class="form-select shadow-sm">
+      <select name="project_id" class="form-select glass-card">
         <option value="">📁 Všetky projekty</option>
         {% for p in projects %}
           <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
         {% endfor %}
       </select>
-      <select name="unit_type" class="form-select shadow-sm">
-        <option value="">⚙️ Všetky jednotky</option>
-        <option value="hodiny" {% if unit_type_filter == 'hodiny' %}selected{% endif %}>Hodiny</option>
-        <option value="m2" {% if unit_type_filter == 'm2' %}selected{% endif %}>m²</option>
+      <select name="unit_type" class="form-select glass-card">
+        <option value="">🔢 Všetky jednotky</option>
+        <option value="hodiny" {% if unit_type_filter == "hodiny" %}selected{% endif %}>Hodiny</option>
+        <option value="m2" {% if unit_type_filter == "m2" %}selected{% endif %}>m²</option>
       </select>
 
-      <button type="submit" class="btn btn-primary shadow-sm"><i class="fa fa-filter me-1"></i> Filtrovať</button>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary shadow-sm"><i class="fa fa-rotate-left me-1"></i> Reset</a>
-    </form>
-
-    <div class="d-flex gap-2 mt-2 mt-md-0">
-      <a href="{{ url_for('export_pdf', user_id=selected_user, project_id=selected_project) }}" 
-         class="btn btn-outline-danger shadow-sm">
-        <i class="fa fa-file-pdf me-1"></i> Exportovať PDF
-      </a>
-      <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#addRecordModal">
-        <i class="fa fa-plus me-1"></i> Pridať záznam
+      <button type="submit" class="btn btn-glass">
+        <i class="fa fa-filter me-1"></i> Filtrovať
       </button>
-    </div>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fa fa-rotate-left me-1"></i> Reset
+      </a>
+    </form>
   </div>
 
-  <!-- Stats Cards -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-4 col-12">
-      <div class="stat-card p-4">
-        <h6 class="text-white-50 mb-1">Celkový výkon</h6>
-        <h2 class="fw-bold">{{ "%.2f"|format(total) }}</h2>
+  <!-- STATS -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-3 col-6">
+      <div class="glass-card p-3 text-center">
+        <h6 class="text-muted mb-1">Celkový výkon</h6>
+        <h2 class="fw-bold text-primary">{{ "%.2f"|format(total) }}</h2>
         <small>hodín / m²</small>
       </div>
     </div>
-    <div class="col-md-4 col-6">
-      <div class="stat-card p-4" style="background: linear-gradient(135deg,#4fc3f7,#81c784);">
-        <h6 class="text-white-50 mb-1">Počet projektov</h6>
-        <h2 class="fw-bold">{{ project_count }}</h2>
-      </div>
-    </div>
-    <div class="col-md-4 col-6">
-      <div class="stat-card p-4" style="background: linear-gradient(135deg,#9575cd,#00bfa6);">
-        <h6 class="text-white-50 mb-1">Používateľ</h6>
-        <h2 class="fw-bold">{{ user.name }}</h2>
+    <div class="col-md-3 col-6">
+      <div class="glass-card p-3 text-center">
+        <h6 class="text-muted mb-1">Počet projektov</h6>
+        <h2 class="fw-bold text-primary">{{ project_count }}</h2>
       </div>
     </div>
   </div>
 
-  <!-- Charts -->
-  <div class="row g-4 mb-5">
-    <div class="col-lg-4 col-md-12">
-      <div class="chart-card p-4 h-100">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-chart-line text-primary me-2"></i>Výkon podľa dátumu</h6>
-        <div class="chart-container"><canvas id="hoursChart" data-labels='{{ chart_labels|tojson }}' data-values='{{ chart_values|tojson }}'></canvas></div>
+  <!-- GRAPHS -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6 class="fw-semibold mb-3"><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
+        <div class="chart-wrapper">
+          <canvas id="hoursChart"
+            data-labels='{{ hours_labels|tojson }}'
+            data-values='{{ hours_values|tojson }}'></canvas>
+        </div>
       </div>
     </div>
-    <div class="col-lg-4 col-md-12">
-      <div class="chart-card p-4 h-100">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-clock text-success me-2"></i>Hodiny podľa projektu</h6>
-        <div class="chart-container"><canvas id="hoursPerProjectChart" data-labels='{{ project_labels|tojson }}' data-values='{{ project_values|tojson }}'></canvas></div>
-      </div>
-    </div>
-    <div class="col-lg-4 col-md-12">
-      <div class="chart-card p-4 h-100">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-ruler-combined text-warning me-2"></i>m² podľa projektu</h6>
-        <div class="chart-container"><canvas id="m2PerProjectChart" data-labels='{{ project_labels|tojson }}' data-values='{{ project_values|tojson }}'></canvas></div>
+
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6 class="fw-semibold mb-3"><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
+        <div class="chart-wrapper">
+          <canvas id="m2Chart"
+            data-labels='{{ m2_labels|tojson }}'
+            data-values='{{ m2_values|tojson }}'></canvas>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Table -->
-  <div class="glass-card p-4 shadow-sm mb-5">
-    <h5 class="fw-semibold mb-3">Záznamy</h5>
-    {% if records %}
-    <div class="table-responsive">
-      <table class="table align-middle table-hover">
-        <thead class="table-light">
-          <tr>
-            <th>Dátum</th><th>Projekt</th>
-            {% if user.is_admin %}<th>Používateľ</th>{% endif %}
-            <th>Množstvo</th><th>Jednotka</th><th>Poznámka</th>
-            {% if user.is_admin %}<th>Akcia</th>{% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in records %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.project.name if r.project else '—' }}</td>
-            {% if user.is_admin %}<td>{{ r.user.name if r.user else '—' }}</td>{% endif %}
-            <td>{{ "%.2f"|format(r.amount) }}</td>
-            <td>{{ r.unit_type or '' }}</td>
-            <td>{{ r.note or '' }}</td>
-            {% if user.is_admin %}
-            <td>
-              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" onsubmit="return confirm('Naozaj zmazať tento záznam?')">
-                <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
-              </form>
-            </td>
-            {% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6 class="fw-semibold mb-3"><i class="fa fa-calendar text-success me-2"></i> Výkon podľa dátumu</h6>
+        <div class="chart-wrapper">
+          <canvas id="dateChart"
+            data-labels='{{ chart_labels|tojson }}'
+            data-values='{{ chart_values|tojson }}'></canvas>
+        </div>
+      </div>
     </div>
-    {% else %}
-      <div class="alert alert-info">Žiadne záznamy.</div>
-    {% endif %}
+
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6 class="fw-semibold mb-3"><i class="fa fa-chart-pie text-danger me-2"></i> Rozdelenie jednotiek</h6>
+        <div class="chart-wrapper">
+          <canvas id="unitChart"
+            data-labels='{{ unit_labels|tojson }}'
+            data-values='{{ unit_values|tojson }}'></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Chart JS -->
+<!-- JS -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  function renderChart(id, type, label, colors) {
+  const makeGradient = (ctx, color1, color2) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, color1);
+    gradient.addColorStop(1, color2);
+    return gradient;
+  };
+
+  const makeChart = (id, type, color1, color2) => {
     const el = document.getElementById(id);
     if (!el) return;
     const ctx = el.getContext('2d');
-    const labels = JSON.parse(el.dataset.labels || "[]");
-    const values = JSON.parse(el.dataset.values || "[]");
+    const labels = JSON.parse(el.dataset.labels);
+    const data = JSON.parse(el.dataset.values);
     new Chart(ctx, {
       type: type,
-      data: { labels, datasets: [{ label, data: values, backgroundColor: colors, borderRadius: 6 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          label: '',
+          backgroundColor: type === 'bar' || type === 'line' ? makeGradient(ctx, color1, color2) : [color1, color2, '#ffb74d', '#90caf9'],
+          borderColor: color1,
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(255,255,255,0.8)',
+            titleColor: '#000',
+            bodyColor: '#000',
+            borderColor: '#ccc',
+            borderWidth: 1
+          }
+        },
+        scales: type !== 'doughnut' ? {
+          y: { beginAtZero: true, grid: { color: 'rgba(200,200,200,0.2)' } },
+          x: { grid: { display: false } }
+        } : {}
+      }
     });
-  }
-  renderChart('hoursChart', 'line', 'Výkon (hodiny/m²)', 'rgba(0,191,166,0.8)');
-  renderChart('hoursPerProjectChart', 'bar', 'Hodiny', 'rgba(33,150,243,0.7)');
-  renderChart('m2PerProjectChart', 'bar', 'm²', 'rgba(255,193,7,0.7)');
+  };
+
+  makeChart("hoursChart", "bar", "#00bfa6", "#b2fef7");
+  makeChart("m2Chart", "bar", "#ffca28", "#ffe082");
+  makeChart("dateChart", "line", "#64b5f6", "#e3f2fd");
+  makeChart("unitChart", "doughnut", "#00bfa6", "#ffca28");
 });
 </script>
 
