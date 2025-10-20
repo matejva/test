@@ -10,11 +10,16 @@
   <header>
     <h1>HRC & Navate</h1>
     <nav>
-      <a href="/dashboard">Dashboard</a>
-      {% if session['user']['role'] == 'admin' %}
-      <a href="/projects">Projekty</a>
+      {% if session.get('user') %}
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        {% if session.get('user').get('role') == 'admin' %}
+          <a href="{{ url_for('projects') }}">Projekty</a>
+          <a href="{{ url_for('users') }}">Užívatelia</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Prihlásiť sa</a>
       {% endif %}
-      <a href="/logout">Odhlásiť sa</a>
     </nav>
   </header>
   <main>
@@ -22,5 +27,3 @@
   </main>
 </body>
 </html>
-
-
