@@ -1,17 +1,18 @@
-import os
-import io
-import logging
-from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+import logging
+import os
 
 # ---------- CONFIG ----------
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+# PostgreSQL database (Render environment variable)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     "DATABASE_URL",
     "postgresql://postgresdatabase_aeol_user:IUYLlFKRzHgCEzRwwxScNz1xMgfKdjTq@dpg-d3r0toodl3ps73ca6on0-a/postgresdatabase_aeol"
 )
@@ -28,15 +29,12 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
-    records = db.relationship("Record", backref="user", lazy=True)
-    documents = db.relationship("Document", backref="user", lazy=True)
 
 class Project(db.Model):
     __tablename__ = "projects"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    unit_type = db.Column(db.String(10))
-    records = db.relationship("Record", backref="project", lazy=True)
+    unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
 
 class Record(db.Model):
     __tablename__ = "records"
@@ -46,17 +44,22 @@ class Record(db.Model):
     date = db.Column(db.String(20))
     amount = db.Column(db.Float)
     note = db.Column(db.String(200))
+    user = db.relationship("User", backref="records")
+    project = db.relationship("Project", backref="records")
 
 class Document(db.Model):
     __tablename__ = "documents"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     filename = db.Column(db.String(100))
+    user = db.relationship("User", backref="documents")
 
 # ---------- ROUTES ----------
+
 @app.route('/')
 def login():
     return render_template('login.html')
+
 
 @app.route('/login', methods=['POST'])
 def do_login():
@@ -68,10 +71,12 @@ def do_login():
         return redirect(url_for('dashboard'))
     return render_template('login.html', error="Zlé meno alebo heslo")
 
+
 @app.route('/logout')
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -82,6 +87,7 @@ def dashboard():
     projects = Project.query.all()
     total = sum([r.amount for r in records])
     return render_template('dashboard.html', user=user, records=records, projects=projects, total=total)
+
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
@@ -100,6 +106,7 @@ def add_record():
     flash("Záznam pridaný!")
     return redirect(url_for('dashboard'))
 
+
 @app.route('/projects')
 def projects():
     user = session.get('user')
@@ -107,6 +114,7 @@ def projects():
         return redirect(url_for('login'))
     all_projects = Project.query.all()
     return render_template('projekt.html', projects=all_projects)
+
 
 @app.route('/add_project', methods=['POST'])
 def add_project():
@@ -121,6 +129,7 @@ def add_project():
     flash("Projekt pridaný.")
     return redirect(url_for('projects'))
 
+
 @app.route('/project/<int:id>')
 def project_detail(id):
     user = session.get('user')
@@ -131,12 +140,40 @@ def project_detail(id):
     details = []
     for r in records:
         details.append({
-            'user_name': r.user.name if r.user else 'Neznámy',
+            'username': r.user.name if r.user else 'Neznámy',
             'date': r.date,
             'amount': r.amount,
             'note': r.note
         })
     return render_template('admin.html', project=proj, details=details)
+
+
+@app.route('/users')
+def users_list():
+    user = session.get('user')
+    if not user or not user['is_admin']:
+        return redirect(url_for('login'))
+    all_users = User.query.all()
+    return render_template('users.html', users=all_users)
+
+
+@app.route('/documents', methods=['GET', 'POST'])
+def documents():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        file = request.files['file']
+        if file:
+            doc = Document(user_id=user['id'], filename=file.filename)
+            db.session.add(doc)
+            db.session.commit()
+            file.save(f"uploads/{file.filename}")  # optional, ak chceš uložiť
+            flash("Dokument nahraný!")
+            return redirect(url_for('documents'))
+    user_docs = Document.query.filter_by(user_id=user['id']).all()
+    return render_template('documents.html', documents=user_docs)
+
 
 @app.route('/export/pdf')
 def export_pdf():
@@ -150,7 +187,8 @@ def export_pdf():
     y = 770
     records = Record.query.filter_by(user_id=user['id']).all()
     for r in records:
-        line = f"{r.date} | {r.project.name if r.project else 'N/A'} | {r.amount} {r.project.unit_type if r.project else ''} | {r.note or ''}"
+        proj = Project.query.get(r.project_id)
+        line = f"{r.date} | {proj.name if proj else 'N/A'} | {r.amount} {proj.unit_type if proj else ''} | {r.note or ''}"
         p.drawString(100, y, line)
         y -= 20
         if y < 50:
@@ -160,28 +198,19 @@ def export_pdf():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
 
-@app.route('/users')
-def users():
-    user = session.get('user')
-    if not user or not user['is_admin']:
-        return redirect(url_for('login'))
-    all_users = User.query.all()
-    return render_template('users.html', users=all_users)
 
-@app.route('/documents', methods=['GET', 'POST'])
-def documents():
-    user = session.get('user')
-    if not user:
-        return redirect(url_for('login'))
-    if request.method == 'POST':
-        file = request.files['file']
-        if file:
-            doc = Document(user_id=user['id'], filename=file.filename)
-            db.session.add(doc)
+# ---------- DB INIT ----------
+with app.app_context():
+    try:
+        db.create_all()
+        if not User.query.filter_by(name="admin").first():
+            admin = User(name='admin', email='admin@example.com', password='admin123', is_admin=True)
+            db.session.add(admin)
             db.session.commit()
-            flash("Dokument nahraný!")
-    docs = Document.query.filter_by(user_id=user['id']).all()
-    return render_template('documents.html', documents=docs)
+            print("✅ Admin user created (admin / admin123)")
+    except Exception as e:
+        print("❌ DB INIT ERROR:", e)
+
 
 # ---------- RUN ----------
 if __name__ == '__main__':
