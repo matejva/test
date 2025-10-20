@@ -163,7 +163,7 @@ def add_record():
     return redirect(url_for('dashboard'))
 
 
-@app.route('/projects')
+@app.route('/project')
 def projects():
     session_user = session.get('user')
     if not session_user or not session_user.get('is_admin'):
