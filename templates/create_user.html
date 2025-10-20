@@ -1,11 +1,41 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Vytvoriť používateľa</h2>
-<form method="post" action="{{ url_for('create_user') }}">
-  <label>Meno:<br><input name="name" required></label><br>
-  <label>Email:<br><input name="email" type="email"></label><br>
-  <label>Heslo:<br><input name="password" type="password" required></label><br>
-  <label>Admin: <input type="checkbox" name="is_admin"></label><br>
-  <button type="submit">Vytvoriť</button>
-</form>
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">Vytvoriť používateľa</h3>
+    <a href="{{ url_for('users_list') }}" class="btn btn-outline-secondary">
+      <i class="fa fa-arrow-left me-1"></i> Späť na zoznam
+    </a>
+  </div>
+
+  <div class="card p-4 shadow-sm" style="max-width: 600px;">
+    <form method="POST" action="{{ url_for('create_user') }}">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Meno</label>
+        <input type="text" name="name" class="form-control" placeholder="Zadaj meno používateľa" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">E-mail</label>
+        <input type="email" name="email" class="form-control" placeholder="Zadaj e-mailovú adresu">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Heslo</label>
+        <input type="password" name="password" class="form-control" placeholder="Zadaj heslo" required>
+      </div>
+
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" name="is_admin" id="adminCheck">
+        <label class="form-check-label" for="adminCheck">Administrátor</label>
+      </div>
+
+      <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="fa fa-user-plus me-2"></i> Vytvoriť používateľa
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
