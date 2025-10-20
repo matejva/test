@@ -6,9 +6,7 @@
     <input type="text" name="username" placeholder="Meno" required>
     <input type="password" name="password" placeholder="Heslo" required>
     <button type="submit">Prihlásiť</button>
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
   </form>
 </div>
 {% endblock %}
