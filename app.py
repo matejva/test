@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify, send_from_directory, abort
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -20,7 +22,11 @@ app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
-logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    level=logging.INFO
+)
 
 # ---------- MODELS ----------
 class User(db.Model):
@@ -64,8 +70,8 @@ def login():
 def do_login():
     name = request.form['username']
     password = request.form['password']
-    user = User.query.filter_by(name=name, password=password).first()
-    if user:
+    user = User.query.filter_by(name=name).first()
+    if user and check_password_hash(user.password, password):
         session['user'] = {'id': user.id, 'name': user.name, 'is_admin': user.is_admin}
         return redirect(url_for('dashboard'))
     return render_template('login.html', error="Zlé meno alebo heslo")
@@ -80,7 +86,6 @@ def dashboard():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
-    # show only this week's records by default — simple approach: show all for now
     records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
     total = sum([r.amount for r in records]) if records else 0
@@ -103,14 +108,12 @@ def add_record():
     flash("Záznam pridaný!")
     return redirect(url_for('dashboard'))
 
-# JSON endpoint for one record (used by edit modal)
 @app.route('/entry/<int:id>/json')
 def entry_json(id):
     user = session.get('user')
     if not user:
         return jsonify({'error': 'not logged'}), 401
     r = Record.query.get_or_404(id)
-    # only owner or admin can fetch
     if r.user_id != user['id'] and not user.get('is_admin'):
         return jsonify({'error': 'forbidden'}), 403
     return jsonify({
@@ -132,7 +135,6 @@ def entry_update():
     if r.user_id != user['id'] and not user.get('is_admin'):
         flash("Nemáte oprávnenie upraviť tento záznam.")
         return redirect(url_for('dashboard'))
-    # update
     r.project_id = int(request.form.get('project_id'))
     r.date = request.form.get('date')
     r.amount = float(request.form.get('amount') or 0)
@@ -161,7 +163,7 @@ def projects():
     if not user or not user['is_admin']:
         return redirect(url_for('login'))
     all_projects = Project.query.order_by(Project.name).all()
-    return render_template('projekt.html', projects=all_projects)
+    return render_template('project.html', projects=all_projects)
 
 @app.route('/add_project', methods=['POST'])
 def add_project():
@@ -183,7 +185,6 @@ def project_detail(id):
         return redirect(url_for('login'))
     proj = Project.query.get_or_404(id)
     records = Record.query.filter_by(project_id=id).order_by(Record.date.desc()).all()
-    # aggregate per user
     details = []
     agg = {}
     for r in records:
@@ -214,7 +215,6 @@ def documents():
         return redirect(url_for('login'))
     if request.method == 'POST':
         file = request.files.get('file')
-        kind = request.form.get('kind') or 'OTHER'
         if file and file.filename:
             safe = secure_filename(file.filename)
             fname = f"{user['id']}_{int(datetime.utcnow().timestamp())}_{safe}"
@@ -265,16 +265,20 @@ def export_pdf():
 
 # ---------- DB INIT ----------
 with app.app_context():
-    try:
-        db.create_all()
-        if not User.query.filter_by(name="admin").first():
-            admin = User(name='admin', email='admin@example.com', password='admin123', is_admin=True)
-            db.session.add(admin)
-            db.session.commit()
-            print("✅ Admin user created (admin / admin123)")
-    except Exception as e:
-        print("❌ DB INIT ERROR:", e)
+    db.create_all()
+    if not User.query.filter_by(name="admin").first():
+        admin = User(
+            name='admin',
+            email='admin@example.com',
+            password=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        app.logger.info("✅ Admin user created (admin / admin123)")
 
 # ---------- RUN ----------
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
