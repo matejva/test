@@ -4,29 +4,20 @@
   <meta charset="UTF-8">
   <title>HRC & Navate</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
   <header>
     <h1>HRC & Navate</h1>
     <nav>
       <a href="{{ url_for('dashboard') }}">Dashboard</a>
-      {% if session.get('user') and session.get('user').get('is_admin') %}
-      <a href="{{ url_for('projects') }}">Projekty</a>
+      {% if session.get('user') and session['user']['is_admin'] %}
+      <a href="{{ url_for('projects_page') }}">Projekty</a>
       {% endif %}
-      <a href="{{ url_for('documents') }}">📄 Dokumenty</a>
       <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
     </nav>
   </header>
   <main>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-          {% for m in messages %}
-            <li>{{ m }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
     {% block content %}{% endblock %}
   </main>
 </body>
