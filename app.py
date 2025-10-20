@@ -186,17 +186,41 @@ def add_record():
     if not session_user:
         return redirect(url_for('login'))
 
-    rec = Record(
-        user_id=session_user['id'],
-        project_id=int(request.form['project_id']),
-        date=request.form['date'],
-        amount=float(request.form['amount']) if request.form['amount'] else 0,
-        unit_type=request.form['unit_type'],
-        note=request.form.get('note')
-    )
-    db.session.add(rec)
-    db.session.commit()
-    flash("Záznam bol pridaný!", "success")
+    try:
+        project_id = int(request.form['project_id'])
+        date_val = request.form['date']           # 'YYYY-MM-DD' string – u nás je date = String(20), OK
+        unit_type = request.form.get('unit_type') # 'hodiny' alebo 'm2'
+        amount_raw = request.form.get('amount', '0').strip()
+        note = request.form.get('note')
+
+        # základná validácia
+        if unit_type not in ('hodiny', 'm2'):
+            flash("Zvoľ typ jednotky (hodiny alebo m²).", "danger")
+            return redirect(url_for('dashboard'))
+
+        try:
+            amount = float(amount_raw)
+        except ValueError:
+            flash("Množstvo musí byť číslo.", "danger")
+            return redirect(url_for('dashboard'))
+
+        rec = Record(
+            user_id=session_user['id'],
+            project_id=project_id,
+            date=date_val,
+            amount=amount,
+            unit_type=unit_type,
+            note=note
+        )
+        db.session.add(rec)
+        db.session.commit()
+        flash("✅ Záznam bol pridaný!", "success")
+
+    except Exception as e:
+        app.logger.exception("Chyba pri pridávaní záznamu")
+        db.session.rollback()
+        flash(f"❌ Nepodarilo sa pridať záznam: {e}", "danger")
+
     return redirect(url_for('dashboard'))
 
 
