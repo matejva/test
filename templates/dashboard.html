@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Moje záznamy</h2>
-<form action="/add_record" method="POST">
+
+<form action="{{ url_for('add_record') }}" method="POST">
   <label>Dátum:</label><input type="date" name="date" required>
   <label>Projekt:</label>
   <select name="project_id" required>
@@ -14,7 +15,7 @@
   <button type="submit">Pridať</button>
 </form>
 
-<a class="pdf-btn" href="/export/pdf">📄 Export PDF</a>
+<a class="pdf-btn" href="{{ url_for('export_pdf') }}">📄 Export PDF</a>
 
 <table>
   <tr><th>Dátum</th><th>Projekt</th><th>Množstvo</th><th>Poznámka</th><th>Upraviť</th></tr>
@@ -24,7 +25,9 @@
     <td>{{ r.project.name if r.project else '' }}</td>
     <td>{{ r.amount }}</td>
     <td>{{ r.note }}</td>
-    <td><button onclick="openEditModal({{ r.id }}, {{ r.project_id }}, {{ r.amount }}, '{{ r.note }}')">✏️</button></td>
+    <td>
+      <button onclick="openEditModal({{ r.id }}, {{ r.project_id }}, {{ r.amount }}, '{{ r.note }}')">✏️</button>
+    </td>
   </tr>
   {% endfor %}
 </table>
