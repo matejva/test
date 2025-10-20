@@ -4,33 +4,36 @@ from datetime import datetime
 import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+import logging
 
-# ---------- KONFIGURÁCIA ----------
+# ---------- CONFIG ----------
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://we_app_db_user:Ueezs3eWQnGzhcKoUTZtijAHJ46RWmDI@dpg-d3lorabipnbc73a6llq0-a/we_app_db'
+# PostgreSQL database (your new Render DB)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgresdatabase_aeol_user:IUYLlFKRzHgCEzRwwxScNz1xMgfKdjTq@dpg-d3r0toodl3ps73ca6on0-a/postgresdatabase_aeol'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+logging.basicConfig(level=logging.DEBUG)
 
-# ---------- MODELY ----------
+# ---------- MODELS ----------
 class User(db.Model):
-    __tablename__ = 'users'
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    email = db.Column(db.String(100))
+    email = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
 
 class Project(db.Model):
-    __tablename__ = 'projects'
+    __tablename__ = "projects"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    unit_type = db.Column(db.String(10))  # hodiny / m2
+    unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
 
 class Record(db.Model):
-    __tablename__ = 'records'
+    __tablename__ = "records"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
@@ -39,23 +42,12 @@ class Record(db.Model):
     note = db.Column(db.String(200))
 
 class Document(db.Model):
-    __tablename__ = 'documents'
+    __tablename__ = "documents"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     filename = db.Column(db.String(100))
 
-# ---------- DB INIT ----------
-def init_db():
-    """Vymaže všetko a vytvorí tabuľky + admin"""
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        if not User.query.filter_by(name="admin").first():
-            db.session.add(User(name="admin", email="admin@test.com", password="admin123", is_admin=True))
-            db.session.commit()
-        print("✅ DB inicializovaná a admin vytvorený")
-
-# ---------- ROUTY ----------
+# ---------- ROUTES ----------
 @app.route('/')
 def login():
     return render_template('login.html')
@@ -108,7 +100,7 @@ def projects():
     if not user or not user['is_admin']:
         return redirect(url_for('login'))
     all_projects = Project.query.all()
-    return render_template('project.html', projects=all_projects)
+    return render_template('projekt.html', projects=all_projects)
 
 @app.route('/add_project', methods=['POST'])
 def add_project():
@@ -134,7 +126,7 @@ def project_detail(id):
     for r in records:
         u = User.query.get(r.user_id)
         details.append({
-            'username': u.name if u else 'Neznámy',
+            'user_name': u.name if u else 'Neznámy',
             'date': r.date,
             'amount': r.amount,
             'note': r.note
@@ -164,6 +156,18 @@ def export_pdf():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
 
-# ---------- ŠTART ----------
+# ---------- DB INIT ----------
+with app.app_context():
+    try:
+        if not User.query.filter_by(name="admin").first():
+            db.create_all()
+            admin = User(name='admin', email='admin@example.com', password='admin123', is_admin=True)
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ Admin user created (admin / admin123)")
+    except Exception as e:
+        print("❌ DB INIT ERROR:", e)
+
+# ---------- RUN ----------
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000)
