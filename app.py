@@ -163,22 +163,30 @@ def add_record():
     return redirect(url_for('dashboard'))
 
 
-@app.route('/project')
+@app.route('/projects')
 def projects():
-    session_user = session.get('user')
-    if not session_user or not session_user.get('is_admin'):
+    user = session.get('user')
+    if not user:
         return redirect(url_for('login'))
+
+    # ak nie je admin, nech ho presmeruje
+    if not user.get('is_admin', False):
+        flash("Nemáte oprávnenie zobraziť projekty.", "danger")
+        return redirect(url_for('dashboard'))
+
     all_projects = Project.query.order_by(Project.name).all()
-    return render_template('project.html', projects=all_projects)
+    return render_template('project.html', projects=all_projects, user=user)
 
 
+# ---------- USERS ----------
 @app.route('/users')
 def users_list():
-    session_user = session.get('user')
-    if not session_user or not session_user.get('is_admin'):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
         return redirect(url_for('login'))
+
     all_users = User.query.order_by(User.name).all()
-    return render_template('users.html', users=all_users)
+    return render_template('users.html', users=all_users, user=user)
 
 
 @app.route('/documents', methods=['GET', 'POST'])
