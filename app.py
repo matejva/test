@@ -92,7 +92,7 @@ def dashboard():
     if not session_user:
         return redirect(url_for('login'))
 
-    # --- 🔹 Filtrovanie z parametrov ---
+    # --- 🔹 Filtrovanie ---
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
     unit_type_filter = request.args.get('unit_type')
@@ -122,32 +122,19 @@ def dashboard():
     total = sum(r.amount for r in records) if records else 0
     project_count = len(set(r.project_id for r in records)) if records else 0
 
-      # --- 🔹 Výkon podľa dátumu (pre line chart) ---
+    # --- 🔹 Výkon podľa dátumu ---
     date_map = {}
     for r in records:
-        if not r.date:  # ⚠️ ochrana proti None
+        if not r.date:
             app.logger.warning(f"Záznam bez dátumu: id={r.id}, projekt={r.project_id}")
             continue
-        # ak je dátum uložený ako string, nechaj tak
-        if isinstance(r.date, str):
-            key = r.date
-        else:
-            key = r.date.strftime("%Y-%m-%d")
-
+        key = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
         date_map[key] = date_map.get(key, 0) + r.amount
 
     chart_labels = list(date_map.keys())
     chart_values = list(date_map.values())
-    # --- 🔹 Výkon podľa projektu (spolu) ---
-    project_map = {}
-    for r in records:
-        pname = r.project.name if r.project else "Neznámy projekt"
-        project_map[pname] = project_map.get(pname, 0) + r.amount
 
-    project_labels = list(project_map.keys())
-    project_values = list(project_map.values())
-
-    # --- 🔹 Rozdelenie podľa jednotky (hodiny vs. m²) ---
+    # --- 🔹 Hodiny podľa projektu ---
     hours_map = {}
     m2_map = {}
     for r in records:
@@ -162,15 +149,16 @@ def dashboard():
     m2_labels = list(m2_map.keys())
     m2_values = list(m2_map.values())
 
-    # --- 🔹 Výkon podľa typu jednotky (pre pie chart / percentá) ---
+    # --- 🔹 Súhrn podľa typu jednotky (pre koláčový graf) ---
     unit_map = {}
     for r in records:
         utype = r.unit_type or "Neznáme"
         unit_map[utype] = unit_map.get(utype, 0) + r.amount
+
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
 
-    # --- 🔹 Render template ---
+    # --- 🔹 Render ---
     return render_template(
         'dashboard.html',
         user=session_user,
@@ -181,8 +169,6 @@ def dashboard():
         project_count=project_count,
         chart_labels=chart_labels,
         chart_values=chart_values,
-        project_labels=project_labels,
-        project_values=project_values,
         hours_labels=hours_labels,
         hours_values=hours_values,
         m2_labels=m2_labels,
