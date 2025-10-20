@@ -1,283 +1,134 @@
-import os
-from datetime import datetime
-from io import BytesIO
-from datetime import date
-
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from werkzeug.security import generate_password_hash, check_password_hash
-import pandas as pd
-from sqlalchemy import func
-
-from dotenv import load_dotenv
-load_dotenv()
+from datetime import datetime
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-secret')
-
-# Použitie PostgreSQL na Render
-DATABASE_URL = os.getenv('DATABASE_URL')
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL musí byť nastavené v .env")
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+app.secret_key = "supersecretkey"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hrc_navate.db'
 db = SQLAlchemy(app)
-login = LoginManager(app)
-login.login_view = 'login'
 
-# MODELY
-class User(db.Model, UserMixin):
+# ---------- MODELY ----------
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False, unique=True)
-    email = db.Column(db.String(200), nullable=True, unique=True)
-    password_hash = db.Column(db.String(200), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
+    username = db.Column(db.String(50), unique=True)
+    password = db.Column(db.String(50))
+    role = db.Column(db.String(10))  # "admin" alebo "user"
 
-    def set_password(self, pw):
-        self.password_hash = generate_password_hash(pw)
-
-    def check_password(self, pw):
-        return check_password_hash(self.password_hash, pw)
-
-class TimeEntry(db.Model):
+class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    hours = db.Column(db.Float, nullable=False)
-    project = db.Column(db.String(200), nullable=True)
-    note = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    name = db.Column(db.String(100))
+    unit_type = db.Column(db.String(10))  # "hodiny" alebo "m2"
 
-    user = db.relationship('User', backref='entries')
+class Record(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    date = db.Column(db.String(20))
+    amount = db.Column(db.Float)
+    note = db.Column(db.String(200))
 
-# LOGIN LOADER
-@login.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+class Document(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    filename = db.Column(db.String(100))
 
-# HELPERS
-def admin_required(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*a, **k):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash("Prístup pre admina len.", "danger")
-            return redirect(url_for('dashboard'))
-        return fn(*a, **k)
-    return wrapper
-
-# ===============================
-# AUTOMATICKÉ VYTOVRENIE TABULIEK
-# ===============================
 with app.app_context():
     db.create_all()
+    if not User.query.filter_by(username="admin").first():
+        db.session.add(User(username="admin", password="admin123", role="admin"))
+        db.session.commit()
 
-# ROUTES
+# ---------- ROUTY ----------
 @app.route('/')
-def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
-
-@app.route('/login', methods=['GET','POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    if request.method == 'POST':
-        name = request.form['name']
-        pw = request.form['password']
-        user = User.query.filter_by(name=name).first()
-        if user and user.check_password(pw):
-            login_user(user)
-            return redirect(url_for('dashboard'))
-        flash('Nesprávne meno alebo heslo', 'danger')
     return render_template('login.html')
 
+@app.route('/login', methods=['POST'])
+def do_login():
+    user = User.query.filter_by(username=request.form['username'], password=request.form['password']).first()
+    if user:
+        session['user'] = {'id': user.id, 'username': user.username, 'role': user.role}
+        return redirect(url_for('dashboard'))
+    return render_template('login.html', error="Zlé meno alebo heslo")
+
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
+    session.pop('user', None)
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
-@login_required
 def dashboard():
-    year = request.args.get('year', type=int)
-    month = request.args.get('month', type=int)
-    week = request.args.get('week', type=int)
-    filter_type = request.args.get('filter_type')
+    if 'user' not in session:
+        return redirect('/')
+    user = session['user']
+    records = Record.query.filter_by(user_id=user['id']).all()
+    projects = Project.query.all()
+    return render_template('dashboard.html', user=user, records=records, projects=projects)
 
-    now = datetime.utcnow()
-    if not year:
-        year = now.year
-
-    query = TimeEntry.query.filter(TimeEntry.user_id == current_user.id)
-    query = query.filter(db.extract('year', TimeEntry.date) == year)
-
-    if filter_type == 'week' and week:
-        # ISO týždeň v roku
-        query = query.filter(func.extract('week', TimeEntry.date) == week)
-        month = None  # zrušíme mesiac
-    elif filter_type == 'month' and month:
-        query = query.filter(db.extract('month', TimeEntry.date) == month)
-        week = None  # zrušíme týždeň
-    else:
-        # predvolený mesiac, ak nič nevybrané
-        if not month and not week:
-            month = now.month
-            query = query.filter(db.extract('month', TimeEntry.date) == month)
-
-    entries = query.order_by(TimeEntry.date.desc()).all()
-    total = sum(e.hours for e in entries)
-
-    return render_template(
-        'dashboard.html',
-        entries=entries,
-        total=total,
-        month=month,
-        year=year,
-        week=week
+@app.route('/add_record', methods=['POST'])
+def add_record():
+    user = session['user']
+    rec = Record(
+        user_id=user['id'],
+        project_id=request.form['project_id'],
+        date=request.form['date'],
+        amount=request.form['amount'],
+        note=request.form['note']
     )
-
-@app.route('/entries')
-@login_required
-def entries():
-    q = TimeEntry.query.filter_by(user_id=current_user.id).order_by(TimeEntry.date.desc())
-    return render_template('entries.html', entries=q.all())
-
-@app.route('/add', methods=['GET','POST'])
-@login_required
-def add_entry():
-    if request.method == 'POST':
-        date_s = request.form['date']
-        project = request.form.get('project')
-        hours = float(request.form['hours'])
-        note = request.form.get('note')
-        date_obj = datetime.strptime(date_s, '%Y-%m-%d').date()
-        ent = TimeEntry(user_id=current_user.id, date=date_obj, hours=hours, project=project, note=note)
-        db.session.add(ent)
-        db.session.commit()
-        flash('Záznam uložený', 'success')
-        return redirect(url_for('dashboard'))
-    return render_template('add_entry.html')
-
-@app.route('/admin')
-@login_required
-@admin_required
-def admin_panel():
-    users = User.query.order_by(User.name).all()
-    return render_template('admin_panel.html', users=users)
-
-@app.route('/admin/create_user', methods=['GET','POST'])
-@login_required
-@admin_required
-def create_user():
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form.get('email')
-        pw = request.form['password']
-        is_admin = True if request.form.get('is_admin') == 'on' else False
-        if User.query.filter((User.name==name)|(User.email==email)).first():
-            flash("Používateľ s daným menom/emailom už existuje", "danger")
-            return redirect(url_for('create_user'))
-        u = User(name=name, email=email, is_admin=is_admin)
-        u.set_password(pw)
-        db.session.add(u)
-        db.session.commit()
-        flash('Používateľ vytvorený', 'success')
-        return redirect(url_for('admin_panel'))
-    return render_template('create_user.html')
-
-@app.route('/admin/users')
-@login_required
-@admin_required
-def users():
-    users = User.query.order_by(User.name).all()
-    return render_template('users.html', users=users)
-
-@app.route('/admin/delete_entry/<int:entry_id>', methods=['POST'])
-@login_required
-@admin_required
-def delete_entry(entry_id):
-    ent = TimeEntry.query.get_or_404(entry_id)
-    db.session.delete(ent)
+    db.session.add(rec)
     db.session.commit()
-    flash('Záznam zmazaný', 'success')
-    return redirect(request.referrer or url_for('admin_panel'))
+    return redirect(url_for('dashboard'))
 
-@app.route('/export', methods=['GET'])
-@login_required
-def export():
-    user_id = request.args.get('user_id')
-    year = request.args.get('year')
-    month = request.args.get('month')
-    if user_id:
-        if not current_user.is_admin and int(user_id) != current_user.id:
-            flash("Nemáte oprávnenie exportovať cudzie dáta", "danger")
-            return redirect(url_for('dashboard'))
-        uid = int(user_id)
-    else:
-        uid = current_user.id
-
-    q = TimeEntry.query.filter(TimeEntry.user_id==uid)
-    if year:
-        q = q.filter(db.extract('year', TimeEntry.date)==int(year))
-    if month:
-        q = q.filter(db.extract('month', TimeEntry.date)==int(month))
-    q = q.order_by(TimeEntry.date.asc()).all()
-
-    rows = []
-    for e in q:
-        rows.append({
-            'user': e.user.name,
-            'date': e.date.isoformat(),
-            'hours': e.hours,
-            'project': e.project,
-            'note': e.note
-        })
-
-    df = pd.DataFrame(rows)
-    if df.empty:
-        df = pd.DataFrame(columns=['user','date','hours','project','note'])
-
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='hours')
-    output.seek(0)
-
-    filename = f"timelog_user_{uid}_{year or 'all'}_{month or 'all'}.xlsx"
-    return send_file(output, download_name=filename, as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-@app.route('/admin/entries')
-@login_required
-@admin_required
-def admin_entries():
-    user_id = request.args.get('user_id', type=int)
-    q = TimeEntry.query
-    if user_id:
-        q = q.filter(TimeEntry.user_id==user_id)
-    entries = q.order_by(TimeEntry.date.desc()).all()
-    users = User.query.order_by(User.name).all()
-    return render_template('entries.html', entries=entries, users=users, admin_view=True)
-
-# ===============================
-# Dočasná route na vytvorenie admina
-# ===============================
-@app.route('/create_admin')
-def create_admin():
-    if User.query.filter_by(name="admin").first():
-        return "Admin už existuje."
-    admin = User(name="admin", email="admin@timelog.local", is_admin=True)
-    admin.set_password("tvojeheslo")
-    db.session.add(admin)
+@app.route('/edit_record/<int:id>', methods=['POST'])
+def edit_record(id):
+    rec = Record.query.get(id)
+    rec.project_id = request.form['project_id']
+    rec.amount = request.form['amount']
+    rec.note = request.form['note']
     db.session.commit()
-    return "Admin účet vytvorený! Meno: admin, Heslo: tvojeheslo"
+    return redirect(url_for('dashboard'))
 
-# ===============================
-# SPUSTENIE
-# ===============================
+@app.route('/projects')
+def projects():
+    user = session['user']
+    if user['role'] != 'admin':
+        return redirect('/')
+    all_projects = Project.query.all()
+    return render_template('projects.html', projects=all_projects)
+
+@app.route('/add_project', methods=['POST'])
+def add_project():
+    p = Project(name=request.form['name'], unit_type=request.form['unit_type'])
+    db.session.add(p)
+    db.session.commit()
+    return redirect(url_for('projects'))
+
+@app.route('/project/<int:id>')
+def project_detail(id):
+    proj = Project.query.get(id)
+    records = Record.query.filter_by(project_id=id).all()
+    return render_template('admin.html', project=proj, records=records)
+
+@app.route('/export/pdf')
+def export_pdf():
+    user = session['user']
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, 800, f"HRC & Navate - Týždenný report: {user['username']}")
+    y = 770
+    records = Record.query.filter_by(user_id=user['id']).all()
+    for r in records:
+        proj = Project.query.get(r.project_id)
+        p.drawString(100, y, f"{r.date} | {proj.name} | {r.amount} {proj.unit_type} | {r.note}")
+        y -= 20
+    p.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True)
 
