@@ -1,57 +1,73 @@
 {% extends 'base.html' %}
 {% block content %}
+
 <div class="container-fluid">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold mb-0">Týždenný prehľad</h3>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h3 class="fw-bold mb-0">Dashboard</h3>
+
+    <!-- 🔹 Filter -->
+    <form method="get" class="d-flex gap-2 flex-wrap">
+      {% if user.is_admin %}
+      <select name="user_id" class="form-select">
+        <option value="">👤 Všetci používatelia</option>
+        {% for u in users %}
+          <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+
+      <select name="project_id" class="form-select">
+        <option value="">📁 Všetky projekty</option>
+        {% for p in projects %}
+          <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-outline-primary">
+        <i class="fa fa-filter me-1"></i> Filtrovať
+      </button>
+
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fa fa-rotate-left me-1"></i> Reset
+      </a>
+    </form>
+
+    <!-- 🔹 Tlačidlo Pridať -->
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
-      <i class="fa fa-plus me-2"></i> Pridať záznam
+      <i class="fa fa-plus me-1"></i> Pridať záznam
     </button>
   </div>
 
-  <!-- 🔹 FILTER FORM -->
-  <form method="get" class="row g-3 align-items-end mb-4">
-    {% if user.is_admin %}
-    <div class="col-md-4">
-      <label class="form-label">Používateľ</label>
-      <select name="user_id" class="form-select">
-        <option value="">Všetci</option>
-        {% for u in users %}
-        <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>{{ u.name }}</option>
-        {% endfor %}
-      </select>
+  <!-- 🔹 Štatistiky -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <h5>Celkový čas</h5>
+        <h3>{{ "%.2f"|format(total) }}</h3>
+        <p class="text-muted small">hodín / m²</p>
+      </div>
     </div>
-    {% endif %}
-    <div class="col-md-4">
-      <label class="form-label">Projekt</label>
-      <select name="project_id" class="form-select">
-        <option value="">Všetky projekty</option>
-        {% for p in projects %}
-        <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
-        {% endfor %}
-      </select>
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <h5>Počet projektov</h5>
+        <h3>{{ project_count }}</h3>
+      </div>
     </div>
-    <div class="col-md-4">
-      <button type="submit" class="btn btn-outline-success px-4">
-        <i class="fa fa-filter me-2"></i> Filtrovať
-      </button>
-    </div>
-  </form>
+  </div>
 
-  <div class="row g-4">
-    <!-- Výkon podľa dní -->
-    <div class="col-lg-8">
-      <div class="card p-4 shadow-sm">
-        <h5 class="fw-semibold mb-3">Hodiny zo záznamov</h5>
+  <!-- 🔹 Grafy -->
+  <div class="row mb-5">
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h6 class="fw-semibold mb-3"><i class="fa fa-chart-line me-2"></i>Výkon podľa dátumu</h6>
         <canvas id="hoursChart"
           data-labels='{{ chart_labels|tojson }}'
           data-values='{{ chart_values|tojson }}'></canvas>
       </div>
     </div>
-
-    <!-- Výkon podľa projektu -->
-    <div class="col-lg-4">
-      <div class="card p-4 shadow-sm">
-        <h5 class="fw-semibold mb-3">Výkon podľa projektu</h5>
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h6 class="fw-semibold mb-3"><i class="fa fa-chart-pie me-2"></i>Výkon podľa projektu</h6>
         <canvas id="projectChart"
           data-labels='{{ project_labels|tojson }}'
           data-values='{{ project_values|tojson }}'></canvas>
@@ -59,23 +75,133 @@
     </div>
   </div>
 
-  <!-- Súhrny -->
-  <div class="row mt-4 g-4">
-    <div class="col-md-3">
-      <div class="card stat-card">
-        <h6 class="text-muted">Celkový výkon</h6>
-        <h3>{{ "%.1f"|format(total) }}</h3>
-      </div>
+  <!-- 🔹 Zoznam záznamov -->
+  <div class="card p-4 shadow-sm">
+    <h5 class="fw-semibold mb-3">Záznamy</h5>
+
+    {% if records %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Dátum</th>
+            <th>Projekt</th>
+            {% if user.is_admin %}
+            <th>Používateľ</th>
+            {% endif %}
+            <th>Množstvo</th>
+            <th>Poznámka</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.project.name if r.project else '—' }}</td>
+            {% if user.is_admin %}
+            <td>{{ r.user.name if r.user else '—' }}</td>
+            {% endif %}
+            <td>{{ "%.2f"|format(r.amount) }}</td>
+            <td>{{ r.note or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <div class="col-md-3">
-      <div class="card stat-card">
-        <h6 class="text-muted">Počet projektov</h6>
-        <h3>{{ project_count }}</h3>
-      </div>
+    {% else %}
+    <div class="alert alert-info mb-0">Žiadne záznamy na zobrazenie.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 🔹 MODAL – Pridať záznam -->
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('add_record') }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addRecordModalLabel">Pridať záznam</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavrieť"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Projekt</label>
+            <select name="project_id" class="form-select" required>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dátum</label>
+            <input type="date" name="date" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Množstvo (hodiny / m²)</label>
+            <input type="number" name="amount" step="0.1" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Poznámka</label>
+            <input type="text" name="note" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
+          <button type="submit" class="btn btn-primary">Uložiť</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
-<!-- Modal na pridanie záznamu (zostáva rovnaký) -->
-{% include 'partials/add_record_modal.html' %}
+<!-- 🔹 Grafy JS -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const hoursChartEl = document.getElementById('hoursChart');
+  if (hoursChartEl) {
+    const ctx = hoursChartEl.getContext('2d');
+    const labels = JSON.parse(hoursChartEl.dataset.labels || "[]");
+    const data = JSON.parse(hoursChartEl.dataset.values || "[]");
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Výkon (hodiny / m²)',
+          data: data,
+          backgroundColor: 'rgba(0,191,166,0.7)',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  const projectChartEl = document.getElementById('projectChart');
+  if (projectChartEl) {
+    const ctx2 = projectChartEl.getContext('2d');
+    const labels2 = JSON.parse(projectChartEl.dataset.labels || "[]");
+    const data2 = JSON.parse(projectChartEl.dataset.values || "[]");
+    new Chart(ctx2, {
+      type: 'pie',
+      data: {
+        labels: labels2,
+        datasets: [{
+          data: data2,
+          backgroundColor: [
+            '#00bfa6', '#ffb74d', '#9575cd', '#4fc3f7', '#81c784', '#f06292'
+          ]
+        }]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+});
+</script>
+
 {% endblock %}
