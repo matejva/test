@@ -18,6 +18,8 @@
     <td>{{ p.unit_type }}</td>
     <td><a href="{{ url_for('project_detail', id=p.id) }}">Otvoriť</a></td>
   </tr>
+  {% else %}
+  <tr><td colspan="3">Žiadne projekty</td></tr>
   {% endfor %}
 </table>
 {% endblock %}
