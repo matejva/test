@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ project.name }} – Prehľad pracovníkov</h2>
+<table>
+  <tr><th>Pracovník</th><th>Množstvo</th><th>Poznámka</th></tr>
+  {% for r in records %}
+  <tr>
+    <td>{{ r.user_id }}</td>
+    <td>{{ r.amount }} {{ project.unit_type }}</td>
+    <td>{{ r.note }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
