@@ -8,6 +8,35 @@
     </button>
   </div>
 
+  <!-- 🔹 FILTER FORM -->
+  <form method="get" class="row g-3 align-items-end mb-4">
+    {% if user.is_admin %}
+    <div class="col-md-4">
+      <label class="form-label">Používateľ</label>
+      <select name="user_id" class="form-select">
+        <option value="">Všetci</option>
+        {% for u in users %}
+        <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="col-md-4">
+      <label class="form-label">Projekt</label>
+      <select name="project_id" class="form-select">
+        <option value="">Všetky projekty</option>
+        {% for p in projects %}
+        <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <button type="submit" class="btn btn-outline-success px-4">
+        <i class="fa fa-filter me-2"></i> Filtrovať
+      </button>
+    </div>
+  </form>
+
   <div class="row g-4">
     <!-- Výkon podľa dní -->
     <div class="col-lg-8">
@@ -47,82 +76,6 @@
   </div>
 </div>
 
-<!-- MODAL NA PRIDANIE ZÁZNAMU -->
-<div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST" action="{{ url_for('add_record') }}">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addRecordModalLabel">Pridať záznam</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavrieť"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Projekt</label>
-            <select name="project_id" class="form-select" required>
-              {% for p in projects %}
-              <option value="{{ p.id }}">{{ p.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Dátum</label>
-            <input type="date" name="date" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Množstvo (hodiny / m²)</label>
-            <input type="number" name="amount" step="0.1" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Poznámka</label>
-            <input type="text" name="note" class="form-control">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
-          <button type="submit" class="btn btn-primary">Uložiť</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const ctx = document.getElementById("hoursChart");
-  if (ctx) {
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: JSON.parse(ctx.dataset.labels),
-        datasets: [{
-          label: 'Výkon',
-          data: JSON.parse(ctx.dataset.values),
-          backgroundColor: 'rgba(0,191,166,0.7)',
-          borderRadius: 6
-        }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  const proj = document.getElementById("projectChart");
-  if (proj) {
-    new Chart(proj, {
-      type: 'doughnut',
-      data: {
-        labels: JSON.parse(proj.dataset.labels),
-        datasets: [{
-          data: JSON.parse(proj.dataset.values),
-          backgroundColor: ['#00bfa6', '#009d8b', '#f4b400', '#ff7043', '#42a5f5']
-        }]
-      },
-      options: { plugins: { legend: { position: 'bottom' } } }
-    });
-  }
-});
-</script>
+<!-- Modal na pridanie záznamu (zostáva rovnaký) -->
+{% include 'partials/add_record_modal.html' %}
 {% endblock %}
