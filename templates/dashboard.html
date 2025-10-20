@@ -1,158 +1,128 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container-fluid">
-
-  <!-- Hlavička -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="fw-bold mb-0">Týždenný prehľad</h3>
-    <div>
-      <a href="{{ url_for('export_pdf') }}" class="btn btn-outline-secondary me-2">
-        <i class="fa fa-download me-1"></i> Exportovať do PDF
-      </a>
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
-        <i class="fa fa-plus me-2"></i> Pridať záznam
-      </button>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+      <i class="fa fa-plus me-2"></i> Pridať záznam
+    </button>
+  </div>
+
+  <div class="row g-4">
+    <!-- Výkon podľa dní -->
+    <div class="col-lg-8">
+      <div class="card p-4 shadow-sm">
+        <h5 class="fw-semibold mb-3">Hodiny zo záznamov</h5>
+        <canvas id="hoursChart"
+          data-labels='{{ chart_labels|tojson }}'
+          data-values='{{ chart_values|tojson }}'></canvas>
+      </div>
+    </div>
+
+    <!-- Výkon podľa projektu -->
+    <div class="col-lg-4">
+      <div class="card p-4 shadow-sm">
+        <h5 class="fw-semibold mb-3">Výkon podľa projektu</h5>
+        <canvas id="projectChart"
+          data-labels='{{ project_labels|tojson }}'
+          data-values='{{ project_values|tojson }}'></canvas>
+      </div>
     </div>
   </div>
 
-  <!-- Tabuľka záznamov -->
-  <div class="card shadow-sm p-4">
-    <h5 class="fw-semibold mb-3">Moje záznamy</h5>
-
-    {% if records %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead>
-          <tr>
-            <th>Dátum</th>
-            <th>Projekt</th>
-            <th>Množstvo</th>
-            <th>Poznámka</th>
-            <th class="text-end">Akcie</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in records %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.project.name if r.project else '-' }}</td>
-            <td>{{ r.amount }} {{ r.project.unit_type if r.project else '' }}</td>
-            <td>{{ r.note or '' }}</td>
-            <td class="text-end">
-              <!-- Upraviť -->
-              <button class="btn btn-sm btn-outline-primary me-1"
-                      onclick="openEditModal('{{ r.id }}', '{{ r.project_id }}', '{{ r.amount }}', '{{ r.note|e }}')">
-                <i class="fa fa-edit"></i>
-              </button>
-
-              <!-- Zmazať -->
-              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" style="display:inline;">
-                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Zmazať záznam?')">
-                  <i class="fa fa-trash"></i>
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Súhrny -->
+  <div class="row mt-4 g-4">
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <h6 class="text-muted">Celkový výkon</h6>
+        <h3>{{ "%.1f"|format(total) }}</h3>
+      </div>
     </div>
-    {% else %}
-    <div class="alert alert-info text-center py-4 mb-0">
-      <i class="fa fa-info-circle me-2"></i> Zatiaľ nemáš žiadne záznamy.
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <h6 class="text-muted">Počet projektov</h6>
+        <h3>{{ project_count }}</h3>
+      </div>
     </div>
-    {% endif %}
   </div>
 </div>
 
-<!-- 🔹 Modal na pridanie záznamu -->
+<!-- MODAL NA PRIDANIE ZÁZNAMU -->
 <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('add_record') }}">
         <div class="modal-header">
-          <h5 class="modal-title fw-semibold" id="addRecordModalLabel">Pridať nový záznam</h5>
+          <h5 class="modal-title" id="addRecordModalLabel">Pridať záznam</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavrieť"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label fw-semibold">Projekt</label>
+            <label class="form-label">Projekt</label>
             <select name="project_id" class="form-select" required>
               {% for p in projects %}
-              <option value="{{ p.id }}">{{ p.name }} ({{ p.unit_type }})</option>
+              <option value="{{ p.id }}">{{ p.name }}</option>
               {% endfor %}
             </select>
           </div>
-
           <div class="mb-3">
-            <label class="form-label fw-semibold">Dátum</label>
-            <input type="date" name="date" class="form-control"
-                   value="{{ datetime.utcnow().strftime('%Y-%m-%d') }}" required>
+            <label class="form-label">Dátum</label>
+            <input type="date" name="date" class="form-control" required>
           </div>
-
           <div class="mb-3">
-            <label class="form-label fw-semibold">Množstvo</label>
-            <input type="number" step="0.1" name="amount" class="form-control" placeholder="napr. 8" required>
+            <label class="form-label">Množstvo (hodiny / m²)</label>
+            <input type="number" name="amount" step="0.1" class="form-control" required>
           </div>
-
           <div class="mb-3">
-            <label class="form-label fw-semibold">Poznámka</label>
-            <textarea name="note" class="form-control" rows="2" placeholder="Voliteľné"></textarea>
+            <label class="form-label">Poznámka</label>
+            <input type="text" name="note" class="form-control">
           </div>
         </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zavrieť</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fa fa-plus me-1"></i> Pridať záznam
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- 🔹 Modal na úpravu záznamu -->
-<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form method="POST" id="editForm" action="{{ url_for('entry_update') }}">
-        <div class="modal-header">
-          <h5 class="modal-title fw-semibold" id="editModalLabel">Upraviť záznam</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavrieť"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="id">
-
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Projekt</label>
-            <select name="project_id" class="form-select" required>
-              {% for p in projects %}
-              <option value="{{ p.id }}">{{ p.name }} ({{ p.unit_type }})</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Množstvo</label>
-            <input type="number" step="0.1" name="amount" class="form-control" required>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Poznámka</label>
-            <textarea name="note" class="form-control" rows="2"></textarea>
-          </div>
-        </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fa fa-save me-1"></i> Uložiť zmeny
-          </button>
+          <button type="submit" class="btn btn-primary">Uložiť</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const ctx = document.getElementById("hoursChart");
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: JSON.parse(ctx.dataset.labels),
+        datasets: [{
+          label: 'Výkon',
+          data: JSON.parse(ctx.dataset.values),
+          backgroundColor: 'rgba(0,191,166,0.7)',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  const proj = document.getElementById("projectChart");
+  if (proj) {
+    new Chart(proj, {
+      type: 'doughnut',
+      data: {
+        labels: JSON.parse(proj.dataset.labels),
+        datasets: [{
+          data: JSON.parse(proj.dataset.values),
+          backgroundColor: ['#00bfa6', '#009d8b', '#f4b400', '#ff7043', '#42a5f5']
+        }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+});
+</script>
 {% endblock %}
