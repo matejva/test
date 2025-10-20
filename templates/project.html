@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Projekty</h2>
-<form action="/add_project" method="POST">
+
+<form action="{{ url_for('add_project') }}" method="POST">
   <input name="name" placeholder="Názov projektu" required>
   <select name="unit_type">
     <option value="hodiny">Hodiny</option>
@@ -16,7 +17,7 @@
   <tr>
     <td>{{ p.name }}</td>
     <td>{{ p.unit_type }}</td>
-    <td><a href="/project/{{ p.id }}">Otvoriť</a></td>
+    <td><a href="{{ url_for('project_detail', id=p.id) }}">Otvoriť</a></td>
   </tr>
   {% endfor %}
 </table>
