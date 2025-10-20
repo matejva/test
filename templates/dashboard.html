@@ -6,7 +6,7 @@
     <h3 class="fw-bold mb-0">Dashboard</h3>
 
     <!-- 🔹 Filter -->
-    <form method="get" class="d-flex gap-2 flex-wrap">
+    <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
       {% if user.is_admin %}
       <select name="user_id" class="form-select">
         <option value="">👤 Všetci používatelia</option>
@@ -40,37 +40,46 @@
 
   <!-- 🔹 Štatistiky -->
   <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <div class="card stat-card">
-        <h5>Celkový čas</h5>
-        <h3>{{ "%.2f"|format(total) }}</h3>
-        <p class="text-muted small">hodín / m²</p>
+    <div class="col-md-3 col-6">
+      <div class="card stat-card shadow-sm">
+        <h6 class="text-muted mb-1">Celkový čas</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ "%.2f"|format(total) }}</h2>
+        <small class="text-muted">hodín / m²</small>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card stat-card">
-        <h5>Počet projektov</h5>
-        <h3>{{ project_count }}</h3>
+    <div class="col-md-3 col-6">
+      <div class="card stat-card shadow-sm">
+        <h6 class="text-muted mb-1">Počet projektov</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ project_count }}</h2>
       </div>
     </div>
   </div>
 
-  <!-- 🔹 Grafy -->
-  <div class="row mb-5">
-    <div class="col-md-6">
-      <div class="card p-3">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-chart-line me-2"></i>Výkon podľa dátumu</h6>
+  <!-- 🔹 Sekcia grafov -->
+  <div class="row g-4 mb-5">
+    <div class="col-lg-6 col-md-12">
+      <div class="card shadow-sm p-4 h-100">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fa fa-chart-line text-primary me-2"></i>
+          <h6 class="fw-semibold mb-0">Výkon podľa dátumu</h6>
+        </div>
         <canvas id="hoursChart"
           data-labels='{{ chart_labels|tojson }}'
-          data-values='{{ chart_values|tojson }}'></canvas>
+          data-values='{{ chart_values|tojson }}'
+          style="height: 300px;"></canvas>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card p-3">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-chart-pie me-2"></i>Výkon podľa projektu</h6>
+
+    <div class="col-lg-6 col-md-12">
+      <div class="card shadow-sm p-4 h-100">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fa fa-chart-pie text-primary me-2"></i>
+          <h6 class="fw-semibold mb-0">Výkon podľa projektu</h6>
+        </div>
         <canvas id="projectChart"
           data-labels='{{ project_labels|tojson }}'
-          data-values='{{ project_values|tojson }}'></canvas>
+          data-values='{{ project_values|tojson }}'
+          style="height: 300px;"></canvas>
       </div>
     </div>
   </div>
@@ -82,7 +91,7 @@
     {% if records %}
     <div class="table-responsive">
       <table class="table table-hover align-middle">
-        <thead>
+        <thead class="table-light">
           <tr>
             <th>Dátum</th>
             <th>Projekt</th>
@@ -170,12 +179,16 @@ document.addEventListener("DOMContentLoaded", () => {
           label: 'Výkon (hodiny / m²)',
           data: data,
           backgroundColor: 'rgba(0,191,166,0.7)',
-          borderRadius: 6
+          borderRadius: 8,
+          maxBarThickness: 40
         }]
       },
       options: {
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(200,200,200,0.2)' } },
+          x: { grid: { display: false } }
+        }
       }
     });
   }
@@ -186,18 +199,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const labels2 = JSON.parse(projectChartEl.dataset.labels || "[]");
     const data2 = JSON.parse(projectChartEl.dataset.values || "[]");
     new Chart(ctx2, {
-      type: 'pie',
+      type: 'doughnut',
       data: {
         labels: labels2,
         datasets: [{
           data: data2,
           backgroundColor: [
-            '#00bfa6', '#ffb74d', '#9575cd', '#4fc3f7', '#81c784', '#f06292'
-          ]
+            '#00bfa6', '#4fc3f7', '#81c784', '#ffd54f', '#9575cd', '#e57373'
+          ],
+          borderWidth: 2,
+          borderColor: '#fff'
         }]
       },
       options: {
-        plugins: { legend: { position: 'bottom' } }
+        cutout: '70%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 14, color: '#333' } }
+        }
       }
     });
   }
