@@ -1,33 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRC & Navate</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ title or 'HRC & Navate' }}</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Custom style -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-gray-100 font-sans">
-    <nav class="bg-blue-600 p-4 text-white flex justify-between">
-        <div class="font-bold text-lg">HRC & Navate</div>
-        {% if session.user %}
-        <div>
-            <span class="mr-4">Ahoj, {{ session.user.name }}</span>
-            <a href="{{ url_for('logout') }}" class="hover:underline">Odhlásiť</a>
-        </div>
-        {% endif %}
-    </nav>
-    <div class="p-6">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for message in messages %}
-                        <div class="bg-green-200 text-green-800 p-2 rounded">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark header-glass">
+  <div class="container-fluid">
+    <a class="navbar-brand ms-3" href="{{ url_for('dashboard') }}">
+      <span class="brand-logo">HRC &amp; Navate</span>
+    </a>
+    <div class="collapse navbar-collapse justify-content-end">
+      {% if session.user %}
+        <div class="me-3 text-white">Ahoj, <strong>{{ session.user.name }}</strong></div>
+        <a class="btn btn-outline-light me-3" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Odhlásiť</a>
+      {% endif %}
     </div>
+  </div>
+</nav>
+
+<main class="container my-4">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for m in messages %}
+          <div class="alert alert-success">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
