@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Projekty</h2>
-
 <form action="{{ url_for('add_project') }}" method="POST">
   <input name="name" placeholder="Názov projektu" required>
   <select name="unit_type">
