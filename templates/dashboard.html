@@ -14,7 +14,7 @@
   <button type="submit">Pridať</button>
 </form>
 
-<a href="{{ url_for('export_pdf') }}">📄 Export PDF</a>
+<a class="pdf-btn" href="{{ url_for('export_pdf') }}">📄 Export PDF</a>
 
 <table>
   <tr><th>Dátum</th><th>Projekt</th><th>Množstvo</th><th>Poznámka</th></tr>
@@ -25,6 +25,8 @@
     <td>{{ r.amount }}</td>
     <td>{{ r.note }}</td>
   </tr>
+  {% else %}
+  <tr><td colspan="4">Žiadne záznamy</td></tr>
   {% endfor %}
 </table>
 {% endblock %}
