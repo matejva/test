@@ -92,13 +92,15 @@ def dashboard():
     if not session_user:
         return redirect(url_for('login'))
 
-    # --- získanie filtrov z URL ---
+    # --- 🔹 Filtrovanie z parametrov ---
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
-    unit_type_filter = request.args.get('unit_type')  # nový filter
+    unit_type_filter = request.args.get('unit_type')
 
-    # --- query builder ---
+    # --- 🔹 Query builder ---
     query = Record.query
+
+    # Ak nie je admin → ukáž len jeho záznamy
     if session_user.get('is_admin'):
         if selected_user:
             query = query.filter_by(user_id=selected_user)
@@ -108,33 +110,53 @@ def dashboard():
     if selected_project:
         query = query.filter_by(project_id=selected_project)
 
-    if unit_type_filter:  # ✅ nový filter
+    if unit_type_filter:
         query = query.filter_by(unit_type=unit_type_filter)
 
-    # --- načítanie dát ---
+    # --- 🔹 Načítanie dát ---
     records = query.order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
     users = User.query.order_by(User.name).all() if session_user.get('is_admin') else []
 
-    total = sum([r.amount for r in records]) if records else 0
+    # --- 🔹 Základné metriky ---
+    total = sum(r.amount for r in records) if records else 0
     project_count = len(set(r.project_id for r in records)) if records else 0
 
-    # --- Výkon podľa dní ---
+    # --- 🔹 Výkon podľa dátumu (pre line chart) ---
     date_map = {}
     for r in records:
-        date_map[r.date] = date_map.get(r.date, 0) + r.amount
+        if not r.date:
+            continue
+        date_map[r.date.strftime("%Y-%m-%d")] = date_map.get(r.date.strftime("%Y-%m-%d"), 0) + r.amount
+
     chart_labels = list(date_map.keys())
     chart_values = list(date_map.values())
 
-    # --- Výkon podľa projektu ---
+    # --- 🔹 Výkon podľa projektu (spolu) ---
     project_map = {}
     for r in records:
         pname = r.project.name if r.project else "Neznámy projekt"
         project_map[pname] = project_map.get(pname, 0) + r.amount
+
     project_labels = list(project_map.keys())
     project_values = list(project_map.values())
 
-    # --- Výkon podľa typu jednotky (NOVÉ) ---
+    # --- 🔹 Rozdelenie podľa jednotky (hodiny vs. m²) ---
+    hours_map = {}
+    m2_map = {}
+    for r in records:
+        pname = r.project.name if r.project else "Neznámy projekt"
+        if r.unit_type == "hodiny":
+            hours_map[pname] = hours_map.get(pname, 0) + r.amount
+        elif r.unit_type == "m2":
+            m2_map[pname] = m2_map.get(pname, 0) + r.amount
+
+    hours_labels = list(hours_map.keys())
+    hours_values = list(hours_map.values())
+    m2_labels = list(m2_map.keys())
+    m2_values = list(m2_map.values())
+
+    # --- 🔹 Výkon podľa typu jednotky (pre pie chart / percentá) ---
     unit_map = {}
     for r in records:
         utype = r.unit_type or "Neznáme"
@@ -142,7 +164,7 @@ def dashboard():
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
 
-    # --- render ---
+    # --- 🔹 Render template ---
     return render_template(
         'dashboard.html',
         user=session_user,
@@ -155,13 +177,16 @@ def dashboard():
         chart_values=chart_values,
         project_labels=project_labels,
         project_values=project_values,
-        unit_labels=unit_labels,          # ✅ nové dáta pre graf
-        unit_values=unit_values,          # ✅ nové dáta pre graf
+        hours_labels=hours_labels,
+        hours_values=hours_values,
+        m2_labels=m2_labels,
+        m2_values=m2_values,
+        unit_labels=unit_labels,
+        unit_values=unit_values,
         selected_user=selected_user,
         selected_project=selected_project,
-        unit_type_filter=unit_type_filter  # ✅ filter pre HTML
+        unit_type_filter=unit_type_filter
     )
-
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
