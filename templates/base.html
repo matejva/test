@@ -1,41 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sk">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ title or "HRC & Navate" }}</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<style>
-body { font-family: 'Inter', sans-serif; background-color: #f5f7fa; }
-.sidebar { background-color: #1b2a41; min-height: 100vh; color: #fff; }
-.sidebar a { color: #fff; text-decoration: none; display: block; padding: 10px 15px; }
-.sidebar a:hover { background-color: #233553; border-radius: 4px; }
-.main-content { margin-left: 220px; padding: 20px; }
-.card { border-radius: 10px; }
-.navbar-dark .navbar-brand { color: #fff; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRC & Navate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
-<body>
-
-<div class="d-flex">
-  <div class="sidebar flex-shrink-0 p-3">
-    <h4>HRC & Navate</h4>
-    <hr>
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
-    <a href="{{ url_for('projects') }}"><i class="fas fa-briefcase me-2"></i> Projekty</a>
-    <a href="{{ url_for('users_list') }}"><i class="fas fa-users me-2"></i> Pracovníci</a>
-    <a href="{{ url_for('documents') }}"><i class="fas fa-file-alt me-2"></i> Dokumenty</a>
-    <hr>
-    <div>{{ session.get('user').name if session.get('user') else '' }}</div>
-  </div>
-
-  <div class="main-content flex-grow-1">
-    {% block content %}{% endblock %}
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<body class="bg-gray-100 font-sans">
+    <nav class="bg-blue-600 p-4 text-white flex justify-between">
+        <div class="font-bold text-lg">HRC & Navate</div>
+        {% if session.user %}
+        <div>
+            <span class="mr-4">Ahoj, {{ session.user.name }}</span>
+            <a href="{{ url_for('logout') }}" class="hover:underline">Odhlásiť</a>
+        </div>
+        {% endif %}
+    </nav>
+    <div class="p-6">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="bg-green-200 text-green-800 p-2 rounded">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
 </body>
 </html>
