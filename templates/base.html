@@ -4,30 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HRC & Navate</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-gray-100 font-sans">
-    <nav class="bg-blue-600 p-4 text-white flex justify-between">
-        <div class="font-bold text-lg">HRC & Navate</div>
-        {% if session.user %}
-        <div>
-            <span class="mr-4">Ahoj, {{ session.user.name }}</span>
-            <a href="{{ url_for('logout') }}" class="hover:underline">Odhlásiť</a>
-        </div>
+<body>
+    <header>
+        <h1>HRC & Navate</h1>
+        {% if session.get('user') %}
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                {% if session['user']['is_admin'] %}
+                    <a href="{{ url_for('projects') }}">Projekty</a>
+                    <a href="{{ url_for('users_list') }}">Používatelia</a>
+                {% endif %}
+                <a href="{{ url_for('documents') }}">Dokumenty</a>
+                <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
+            </nav>
         {% endif %}
-    </nav>
-    <div class="p-6">
+    </header>
+
+    <main>
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-                <div class="mb-4">
-                    {% for message in messages %}
-                        <div class="bg-green-200 text-green-800 p-2 rounded">{{ message }}</div>
+                <ul class="flash-messages">
+                    {% for msg in messages %}
+                        <li>{{ msg }}</li>
                     {% endfor %}
-                </div>
+                </ul>
             {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </html>
