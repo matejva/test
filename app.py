@@ -215,20 +215,34 @@ def export_pdf():
     if not user:
         return redirect(url_for('login'))
 
+    selected_user = request.args.get('user_id', type=int)
+    selected_project = request.args.get('project_id', type=int)
+
+    query = Record.query
+    if user.get('is_admin') and selected_user:
+        query = query.filter_by(user_id=selected_user)
+    else:
+        query = query.filter_by(user_id=user['id'])
+
+    if selected_project:
+        query = query.filter_by(project_id=selected_project)
+
+    records = query.order_by(Record.date.desc()).all()
+
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, 800, f"HRC & Navate - Report: {user['name']}")
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 800, "HRC & Navate - Výkonnostný report")
 
     y = 770
-    records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
+    p.setFont("Helvetica", 11)
     for r in records:
         proj = Project.query.get(r.project_id)
-        line = f"{r.date} | {proj.name if proj else 'N/A'} | {r.amount} {proj.unit_type if proj else ''} | {r.note or ''}"
-        p.setFont("Helvetica", 10)
-        p.drawString(100, y, line)
+        uname = r.user.name if r.user else "Neznámy"
+        line = f"{r.date} | {uname} | {proj.name if proj else 'N/A'} | {r.amount} {proj.unit_type if proj else ''} | {r.note or ''}"
+        p.drawString(80, y, line)
         y -= 18
-        if y < 50:
+        if y < 60:
             p.showPage()
             y = 800
 
@@ -238,10 +252,9 @@ def export_pdf():
     return send_file(
         buffer,
         as_attachment=True,
-        download_name=f"{user['name']}_report.pdf",
-        mimetype='application/pdf'
+        download_name="vykon_report.pdf",
+        mimetype="application/pdf"
     )
-
 
 # ---------- USERS ----------
 @app.route('/users')
