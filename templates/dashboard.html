@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Moje záznamy</h2>
-
 <form action="{{ url_for('add_record') }}" method="POST">
   <label>Dátum:</label><input type="date" name="date" required>
   <label>Projekt:</label>
@@ -15,35 +14,17 @@
   <button type="submit">Pridať</button>
 </form>
 
-<a class="pdf-btn" href="{{ url_for('export_pdf') }}">📄 Export PDF</a>
+<a href="{{ url_for('export_pdf') }}">📄 Export PDF</a>
 
 <table>
-  <tr><th>Dátum</th><th>Projekt</th><th>Množstvo</th><th>Poznámka</th><th>Upraviť</th></tr>
+  <tr><th>Dátum</th><th>Projekt</th><th>Množstvo</th><th>Poznámka</th></tr>
   {% for r in records %}
   <tr>
     <td>{{ r.date }}</td>
     <td>{{ r.project.name if r.project else '' }}</td>
     <td>{{ r.amount }}</td>
     <td>{{ r.note }}</td>
-    <td>
-      <button onclick="openEditModal({{ r.id }}, {{ r.project_id }}, {{ r.amount }}, '{{ r.note }}')">✏️</button>
-    </td>
   </tr>
   {% endfor %}
 </table>
-
-<div id="editModal" class="modal">
-  <form id="editForm" method="POST">
-    <h3>Upraviť záznam</h3>
-    <label>Projekt:</label>
-    <select name="project_id">
-      {% for p in projects %}
-      <option value="{{ p.id }}">{{ p.name }}</option>
-      {% endfor %}
-    </select>
-    <label>Množstvo:</label><input name="amount" type="number" step="0.1">
-    <label>Poznámka:</label><input name="note" type="text">
-    <button type="submit">Uložiť</button>
-  </form>
-</div>
 {% endblock %}
