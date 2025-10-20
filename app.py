@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-import io, logging, os, traceback
+import os, io, logging, traceback
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -9,7 +8,7 @@ from reportlab.pdfgen import canvas
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-# Použiť ENV pre databázu (Render.com) alebo fallback na lokálnu SQLite
+# Použiť environment variable pre databázu, fallback na SQLite lokálne
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///hrc_navate.db")
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
