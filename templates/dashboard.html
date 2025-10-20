@@ -2,25 +2,22 @@
 {% block content %}
 
 <style>
-/* 🌈 GLASSMORPHISM DASHBOARD WITH LIGHT/DARK TOGGLE */
 :root {
   --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #f9fbff 100%);
-  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-bg: rgba(255, 255, 255, 0.5);
   --glass-border: rgba(255, 255, 255, 0.25);
   --text-color: #222;
-  --accent-color: #00bfa6;
+  --accent: #00bfa6;
   --shadow: rgba(0, 0, 0, 0.1);
-  --card-hover: rgba(0, 0, 0, 0.15);
 }
 
 body.dark-mode {
-  --bg-gradient: linear-gradient(135deg, #111827 0%, #1e293b 100%);
-  --glass-bg: rgba(30, 41, 59, 0.45);
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --glass-bg: rgba(30, 41, 59, 0.5);
   --glass-border: rgba(255, 255, 255, 0.15);
   --text-color: #f1f5f9;
-  --accent-color: #4fd1c5;
-  --shadow: rgba(0, 0, 0, 0.5);
-  --card-hover: rgba(255, 255, 255, 0.1);
+  --accent: #4fd1c5;
+  --shadow: rgba(0, 0, 0, 0.4);
 }
 
 body {
@@ -33,86 +30,68 @@ body {
 .glass-card {
   backdrop-filter: blur(16px);
   background: var(--glass-bg);
-  border-radius: 20px;
   border: 1px solid var(--glass-border);
+  border-radius: 20px;
   box-shadow: 0 8px 32px var(--shadow);
   transition: all 0.3s ease;
 }
 
-.glass-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px var(--card-hover);
+.glass-card:hover { transform: translateY(-2px); }
+
+.theme-toggle {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform 0.3s ease;
 }
+.theme-toggle:hover { transform: rotate(20deg); }
 
 .btn-glass {
   backdrop-filter: blur(10px);
   background: rgba(0, 191, 166, 0.25);
   border: 1px solid rgba(0, 191, 166, 0.4);
   color: #006a58;
-  transition: 0.3s;
 }
 body.dark-mode .btn-glass {
   background: rgba(79, 209, 197, 0.25);
-  color: #4fd1c5;
   border-color: rgba(79, 209, 197, 0.4);
+  color: #4fd1c5;
 }
-
-.btn-glass:hover {
-  background: rgba(0, 191, 166, 0.4);
-}
-
-.table-hover tbody tr:hover {
-  background: rgba(0, 191, 166, 0.05);
-}
-
-.theme-toggle {
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  font-size: 1.4rem;
-  color: var(--text-color);
-  transition: transform 0.3s ease;
-}
-
-.theme-toggle:hover {
-  transform: rotate(20deg);
-}
+.btn-glass:hover { background: rgba(0, 191, 166, 0.4); }
 </style>
 
 <div class="container-fluid py-3">
 
-  <!-- HEADER + FILTERS -->
+  <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-    <h2 class="fw-bold mb-0">
-      <i class="fa fa-chart-area text-primary me-2"></i> Dashboard
-    </h2>
-
-    <div class="d-flex align-items-center gap-3">
-      <button id="themeToggle" class="theme-toggle" title="Prepnúť tému">
-        <i class="fa fa-sun"></i>
-      </button>
-    </div>
+    <h2 class="fw-bold mb-0"><i class="fa fa-chart-line text-primary me-2"></i> Dashboard</h2>
+    <button id="themeToggle" class="theme-toggle" title="Prepnúť tému">
+      <i class="fa fa-sun"></i>
+    </button>
   </div>
 
+  <!-- Filter -->
   <div class="glass-card p-3 mb-4">
     <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
       {% if user.is_admin %}
-      <select name="user_id" class="form-select glass-card">
+      <select name="user_id" class="form-select">
         <option value="">👤 Všetci používatelia</option>
         {% for u in users %}
-          <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>{{ u.name }}</option>
+        <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>{{ u.name }}</option>
         {% endfor %}
       </select>
       {% endif %}
 
-      <select name="project_id" class="form-select glass-card">
+      <select name="project_id" class="form-select">
         <option value="">📁 Všetky projekty</option>
         {% for p in projects %}
-          <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
+        <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
         {% endfor %}
       </select>
 
-      <select name="unit_type" class="form-select glass-card">
+      <select name="unit_type" class="form-select">
         <option value="">🔢 Všetky jednotky</option>
         <option value="hodiny" {% if unit_type_filter == "hodiny" %}selected{% endif %}>Hodiny</option>
         <option value="m2" {% if unit_type_filter == "m2" %}selected{% endif %}>m²</option>
@@ -121,11 +100,13 @@ body.dark-mode .btn-glass {
       <button type="submit" class="btn btn-glass">
         <i class="fa fa-filter me-1"></i> Filtrovať
       </button>
+
       <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
         <i class="fa fa-rotate-left me-1"></i> Reset
       </a>
 
-      <a href="{{ url_for('export_pdf', user_id=selected_user, project_id=selected_project) }}" class="btn btn-outline-danger ms-auto">
+      <a href="{{ url_for('export_pdf', user_id=selected_user, project_id=selected_project) }}" 
+         class="btn btn-outline-danger ms-auto">
         <i class="fa fa-file-pdf me-1"></i> Exportovať PDF
       </a>
 
@@ -135,7 +116,7 @@ body.dark-mode .btn-glass {
     </form>
   </div>
 
-  <!-- STATS -->
+  <!-- Stats -->
   <div class="row g-4 mb-4">
     <div class="col-md-3 col-6">
       <div class="glass-card p-3 text-center">
@@ -152,24 +133,45 @@ body.dark-mode .btn-glass {
     </div>
   </div>
 
-  <!-- CHARTS -->
+  <!-- Charts -->
   <div class="row g-4 mb-4">
+    <div class="col-lg-12">
+      <div class="glass-card p-4">
+        <h6 class="fw-semibold mb-3">
+          <i class="fa fa-calendar text-success me-2"></i> Výkon podľa dátumu
+        </h6>
+        <div style="height: 280px;">
+          <canvas id="dateChart" 
+            data-labels='{{ chart_labels|tojson }}'
+            data-values='{{ chart_values|tojson }}'></canvas>
+        </div>
+      </div>
+    </div>
+
     <div class="col-lg-6">
       <div class="glass-card p-4">
         <h6 class="fw-semibold mb-3"><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
-        <div style="height: 280px;"><canvas id="hoursChart" data-labels='{{ hours_labels|tojson }}' data-values='{{ hours_values|tojson }}'></canvas></div>
+        <div style="height: 280px;">
+          <canvas id="hoursChart" 
+            data-labels='{{ hours_labels|tojson }}'
+            data-values='{{ hours_values|tojson }}'></canvas>
+        </div>
       </div>
     </div>
     <div class="col-lg-6">
       <div class="glass-card p-4">
         <h6 class="fw-semibold mb-3"><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
-        <div style="height: 280px;"><canvas id="m2Chart" data-labels='{{ m2_labels|tojson }}' data-values='{{ m2_values|tojson }}'></canvas></div>
+        <div style="height: 280px;">
+          <canvas id="m2Chart" 
+            data-labels='{{ m2_labels|tojson }}'
+            data-values='{{ m2_values|tojson }}'></canvas>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- RECORDS TABLE -->
-  <div class="glass-card p-4 shadow-sm mb-5">
+  <!-- Records Table -->
+  <div class="glass-card p-4 mb-5">
     <h5 class="fw-semibold mb-3">📋 Záznamy</h5>
     {% if records %}
     <div class="table-responsive">
@@ -196,7 +198,8 @@ body.dark-mode .btn-glass {
             <td>{{ r.note or '' }}</td>
             {% if user.is_admin %}
             <td>
-              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" onsubmit="return confirm('Naozaj chceš zmazať tento záznam?')">
+              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" 
+                    onsubmit="return confirm('Naozaj chceš zmazať tento záznam?')">
                 <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
               </form>
             </td>
@@ -212,7 +215,7 @@ body.dark-mode .btn-glass {
   </div>
 </div>
 
-<!-- MODAL ADD RECORD -->
+<!-- Modal Add Record -->
 <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content glass-card">
@@ -259,17 +262,16 @@ body.dark-mode .btn-glass {
   </div>
 </div>
 
-<!-- JS: Theme toggle + Charts -->
+<!-- JS -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  // 🌙 Light/Dark toggle
   const themeToggle = document.getElementById("themeToggle");
   const icon = themeToggle.querySelector("i");
-
   if (localStorage.getItem("theme") === "dark") {
     document.body.classList.add("dark-mode");
     icon.classList.replace("fa-sun", "fa-moon");
   }
-
   themeToggle.addEventListener("click", () => {
     document.body.classList.toggle("dark-mode");
     const dark = document.body.classList.contains("dark-mode");
@@ -277,19 +279,41 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("theme", dark ? "dark" : "light");
   });
 
-  const makeChart = (id, type, color) => {
+  // 📈 Chart helper
+  const makeChart = (id, type, color, gradient = false) => {
     const el = document.getElementById(id);
     if (!el) return;
     const ctx = el.getContext("2d");
     const labels = JSON.parse(el.dataset.labels || "[]");
     const data = JSON.parse(el.dataset.values || "[]");
+
+    let bgColor = color;
+    if (gradient) {
+      const grad = ctx.createLinearGradient(0, 0, 0, 200);
+      grad.addColorStop(0, color + "cc");
+      grad.addColorStop(1, color + "11");
+      bgColor = grad;
+    }
+
     new Chart(ctx, {
       type,
-      data: { labels, datasets: [{ data, backgroundColor: color, borderWidth: 2 }] },
+      data: {
+        labels,
+        datasets: [{ 
+          data, 
+          fill: gradient, 
+          borderColor: color, 
+          backgroundColor: bgColor, 
+          tension: 0.4, 
+          pointRadius: 4,
+          borderWidth: 2 
+        }]
+      },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
   };
 
+  makeChart("dateChart", "line", "#00bfa6", true);
   makeChart("hoursChart", "bar", "#00bfa6");
   makeChart("m2Chart", "bar", "#ffca28");
 });
