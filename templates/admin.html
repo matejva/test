@@ -1,20 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Detail projektu: {{ project.name }}</h2>
-<table>
-    <tr>
-        <th>Používateľ</th>
-        <th>Dátum</th>
-        <th>Množstvo</th>
-        <th>Poznámka</th>
-    </tr>
-    {% for d in details %}
-    <tr>
-        <td>{{ d.username }}</td>
-        <td>{{ d.date }}</td>
-        <td>{{ d.amount }}</td>
-        <td>{{ d.note }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">{{ project.name }}</h3>
+    <a href="{{ url_for('projects') }}" class="btn btn-outline-secondary">
+      <i class="fa fa-arrow-left me-1"></i> Späť na projekty
+    </a>
+  </div>
+
+  <!-- SUMÁR -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6>Spolu hodiny</h6>
+        <h3 class="fw-bold text-success">{{ total_h }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6>Spolu m²</h6>
+        <h3 class="fw-bold text-info">{{ total_m2 }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABUĽKA DETAILOV -->
+  <div class="card p-4 mb-4">
+    <h5 class="mb-3">Záznamy používateľov</h5>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Používateľ</th>
+            <th>Dátum</th>
+            <th>Množstvo</th>
+            <th>Poznámka</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in details %}
+          <tr>
+            <td class="fw-medium">{{ d.username }}</td>
+            <td>{{ d.date }}</td>
+            <td>
+              {% if project.unit_type == 'hodiny' %}
+                <span class="badge bg-primary">{{ d.amount }} h</span>
+              {% else %}
+                <span class="badge bg-success">{{ d.amount }} m²</span>
+              {% endif %}
+            </td>
+            <td>{{ d.note or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AGREGÁCIA PO POUŽÍVATEĽOCH -->
+  <div class="card p-4">
+    <h5 class="mb-3">Súhrn podľa používateľa</h5>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Používateľ</th>
+            <th>Hodiny</th>
+            <th>m²</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in per_user %}
+          <tr>
+            <td>{{ u.user }}</td>
+            <td class="fw-bold text-primary">{{ u.h }}</td>
+            <td class="fw-bold text-success">{{ u.m2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {% endblock %}
