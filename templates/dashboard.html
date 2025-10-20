@@ -1,59 +1,88 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% block content %}
-<h3>Týždenný prehľad</h3>
+<div class="container-fluid">
 
-<div class="row mt-4">
-  <div class="col-md-8">
-    <div class="card p-4">
-      <h5>Hodiny zo záznamov</h5>
-      <canvas id="hoursChart"></canvas>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">Týždenný prehľad</h3>
+    <a href="{{ url_for('export_pdf') }}" class="btn btn-outline-secondary">
+      <i class="fa fa-download me-2"></i> Exportovať do PDF
+    </a>
+  </div>
+
+  <!-- Prehľad práce -->
+  <div class="row mb-5">
+    <div class="col-lg-8">
+      <div class="card shadow-sm p-4">
+        <h5 class="fw-semibold mb-3">Moje záznamy</h5>
+        {% if records %}
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Dátum</th>
+              <th>Projekt</th>
+              <th>Množstvo</th>
+              <th>Poznámka</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+            <tr>
+              <td>{{ r.date }}</td>
+              <td>{{ r.project.name if r.project else '–' }}</td>
+              <td>{{ r.amount }} {{ r.project.unit_type if r.project else '' }}</td>
+              <td>{{ r.note or '' }}</td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" style="display:inline;">
+                  <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Zmazať záznam?')">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-info">Zatiaľ nemáš žiadne záznamy.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Formulár na nový záznam -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm p-4">
+        <h5 class="fw-semibold mb-3">Pridať záznam</h5>
+        <form method="POST" action="{{ url_for('add_record') }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Projekt</label>
+            <select name="project_id" class="form-select" required>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.name }} ({{ p.unit_type }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Dátum</label>
+            <input type="date" name="date" class="form-control" value="{{ datetime.utcnow().strftime('%Y-%m-%d') }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Množstvo</label>
+            <input type="number" name="amount" class="form-control" placeholder="napr. 8" step="0.1" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Poznámka</label>
+            <textarea name="note" class="form-control" rows="2" placeholder="Voliteľné"></textarea>
+          </div>
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="fa fa-plus me-2"></i> Pridať
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="card p-4">
-      <h5>Výkon podľa projektu</h5>
-      <ul class="list-group list-group-flush">
-        {% for r in records %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ r.project.name if r.project else 'N/A' }}
-          <span class="badge bg-primary rounded-pill">{{ r.amount }} {{ r.project.unit_type if r.project else '' }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
+
 </div>
-
-<div class="row mt-4">
-  <div class="col-md-3">
-    <div class="card text-center p-3">
-      <h6>Celkový výkon</h6>
-      <h3>{{ total }}</h3>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-center p-3">
-      <h6>Počet projektov</h6>
-      <h3>{{ projects|length }}</h3>
-    </div>
-  </div>
-</div>
-
-<script>
-const ctx = document.getElementById('hoursChart').getContext('2d');
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: [{% for r in records %}'{{ r.date }}',{% endfor %}],
-    datasets: [{
-      label: 'Hodiny',
-      data: [{% for r in records %}{{ r.amount }},{% endfor %}],
-      backgroundColor: 'rgba(0,191,166,0.7)'
-    }]
-  },
-  options: {
-    scales: { y: { beginAtZero: true } }
-  }
-});
-</script>
 {% endblock %}
