@@ -4,25 +4,29 @@
   <meta charset="UTF-8">
   <title>HRC & Navate</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
   <header>
     <h1>HRC & Navate</h1>
     <nav>
-      {% if session.get('user') %}
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        {% if session.get('user').get('role') == 'admin' %}
-          <a href="{{ url_for('projects') }}">Projekty</a>
-          <a href="{{ url_for('users') }}">Užívatelia</a>
-        {% endif %}
-        <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
-      {% else %}
-        <a href="{{ url_for('login') }}">Prihlásiť sa</a>
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      {% if session.get('user') and session.get('user').get('is_admin') %}
+      <a href="{{ url_for('projects') }}">Projekty</a>
       {% endif %}
+      <a href="{{ url_for('documents') }}">📄 Dokumenty</a>
+      <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
     </nav>
   </header>
   <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for m in messages %}
+            <li>{{ m }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </main>
 </body>
