@@ -3,41 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title or "HRC & Navate" }}</title>
+  <title>HRC & Navate</title>
+
+  <!-- Bootstrap & FontAwesome -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Vlastné štýly -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
-<div class="d-flex">
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-header">
-      <h3>HRC & Navate</h3>
-    </div>
-    <ul class="nav flex-column">
-      <li><a href="{{ url_for('dashboard') }}"><i class="fa fa-chart-bar"></i> Dashboard</a></li>
-      <li><a href="{{ url_for('projects') }}"><i class="fa fa-briefcase"></i> Projekty</a></li>
-      <li><a href="{{ url_for('users_list') }}"><i class="fa fa-users"></i> Pracovníci</a></li>
-      <li><a href="{{ url_for('documents') }}"><i class="fa fa-folder-open"></i> Dokumenty</a></li>
-      <li><a href="{{ url_for('logout') }}"><i class="fa fa-sign-out-alt"></i> Odhlásiť sa</a></li>
-    </ul>
-    <div class="sidebar-user">
-      {% if session.get('user') %}
-        <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="user" class="avatar">
-        <div>{{ session['user']['name'] }}</div>
-      {% endif %}
+<body class="bg-light">
+
+  <!-- Navigácia -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">HRC & Navate</a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          {% if session.get('user') %}
+            {% if session['user'].is_admin %}
+              <li class="nav-item"><a href="{{ url_for('projects') }}" class="nav-link">Projekty</a></li>
+              <li class="nav-item"><a href="{{ url_for('users_list') }}" class="nav-link">Používatelia</a></li>
+            {% endif %}
+            <li class="nav-item"><a href="{{ url_for('documents') }}" class="nav-link">Dokumenty</a></li>
+            <li class="nav-item"><a href="{{ url_for('logout') }}" class="nav-link text-warning"><i class="fa fa-sign-out-alt"></i> Odhlásiť sa</a></li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
   </nav>
 
-  <!-- Content -->
-  <div class="main">
-    {% block content %}{% endblock %}
+  <!-- Flash správy -->
+  <div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zavrieť"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <!-- Obsah stránky -->
+  <main class="container mb-5">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Bootstrap + JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+
 </body>
 </html>
