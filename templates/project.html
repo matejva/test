@@ -1,35 +1,21 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
-<h2 class="text-xl font-bold mb-4">Projekty</h2>
+<h2>Projekty</h2>
 
-<form method="POST" action="{{ url_for('add_project') }}" class="mb-4 flex gap-2">
-    <input type="text" name="name" placeholder="Názov projektu" class="border p-2 rounded w-64">
-    <select name="unit_type" class="border p-2 rounded">
+<h3>Pridať projekt</h3>
+<form method="POST" action="{{ url_for('add_project') }}">
+    <input type="text" name="name" placeholder="Názov projektu" required>
+    <select name="unit_type" required>
         <option value="hodiny">Hodiny</option>
-        <option value="m2">m²</option>
+        <option value="m2">m2</option>
     </select>
-    <button type="submit" class="bg-green-600 text-white p-2 rounded hover:bg-green-700">Pridať projekt</button>
+    <button type="submit">Pridať projekt</button>
 </form>
 
-<table class="min-w-full bg-white rounded shadow">
-    <thead>
-        <tr class="bg-gray-200 text-left">
-            <th class="p-2">Názov</th>
-            <th class="p-2">Typ</th>
-            <th class="p-2">Akcie</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for p in projects %}
-        <tr class="border-b hover:bg-gray-50">
-            <td class="p-2">{{ p.name }}</td>
-            <td class="p-2">{{ p.unit_type }}</td>
-            <td class="p-2">
-                <a href="{{ url_for('project_detail', id=p.id) }}" class="bg-blue-600 text-white p-1 rounded hover:bg-blue-700">Detail</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h3>Existujúce projekty</h3>
+<ul>
+    {% for p in projects %}
+        <li><a href="{{ url_for('project_detail', id=p.id) }}">{{ p.name }}</a> ({{ p.unit_type }})</li>
+    {% endfor %}
+</ul>
 {% endblock %}
