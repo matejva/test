@@ -1,10 +1,12 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<h2>Prihlásenie</h2>
-<form method="post">
-  <label>Meno:<br><input name="name" required></label><br>
-  <label>Heslo:<br><input name="password" type="password" required></label><br>
-  <button type="submit">Prihlásiť</button>
-</form>
-<p>Ak nemáš účet, požiadaj admina aby ti ho vytvoril.</p>
+<div class="login-container">
+  <form action="/login" method="POST">
+    <h2>Prihlásenie</h2>
+    <input type="text" name="username" placeholder="Meno" required>
+    <input type="password" name="password" placeholder="Heslo" required>
+    <button type="submit">Prihlásiť</button>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  </form>
+</div>
 {% endblock %}
