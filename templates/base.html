@@ -1,34 +1,33 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-  <meta charset="UTF-8">
-  <title>HRC & Navate</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRC & Navate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
-<body>
-  <header>
-    <h1>HRC & Navate</h1>
-    <nav>
-      <a href="{{ url_for('dashboard') }}">Dashboard</a>
-      {% if session.get('user') and session['user']['is_admin'] %}
-      <a href="{{ url_for('projects') }}">Projekty</a>
-      <a href="{{ url_for('users_list') }}">Užívatelia</a>
-      {% endif %}
-      <a href="{{ url_for('logout') }}">Odhlásiť sa</a>
+<body class="bg-gray-100 font-sans">
+    <nav class="bg-blue-600 p-4 text-white flex justify-between">
+        <div class="font-bold text-lg">HRC & Navate</div>
+        {% if session.user %}
+        <div>
+            <span class="mr-4">Ahoj, {{ session.user.name }}</span>
+            <a href="{{ url_for('logout') }}" class="hover:underline">Odhlásiť</a>
+        </div>
+        {% endif %}
     </nav>
-  </header>
-  <main>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul class="flashes">
-        {% for msg in messages %}
-          <li>{{ msg }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </main>
+    <div class="p-6">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="bg-green-200 text-green-800 p-2 rounded">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
 </body>
 </html>
