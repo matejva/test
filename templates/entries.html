@@ -17,16 +17,23 @@
 {% endif %}
 
 <table>
-<thead><tr><th>Užívateľ</th><th>Dátum</th><th>Hodiny</th><th>Projekt</th><th>Poznámka</th>{% if current_user.is_admin %}<th>Akcie</th>{% endif %}</tr></thead>
+<thead>
+  <tr>
+    <th>Užívateľ</th><th>Dátum</th><th>Množstvo</th><th>Projekt</th><th>Poznámka</th>
+    {% if session.get('user') and session.get('user').get('role') == 'admin' %}
+      <th>Akcie</th>
+    {% endif %}
+  </tr>
+</thead>
 <tbody>
 {% for e in entries %}
   <tr>
     <td>{{ e.user.name }}</td>
     <td>{{ e.date }}</td>
-    <td>{{ e.hours }}</td>
-    <td>{{ e.project }}</td>
+    <td>{{ e.amount }}</td>
+    <td>{{ e.project.name if e.project else '' }}</td>
     <td>{{ e.note }}</td>
-    {% if current_user.is_admin %}
+    {% if session.get('user') and session.get('user').get('role') == 'admin' %}
     <td>
       <form method="post" action="{{ url_for('delete_entry', entry_id=e.id) }}" onsubmit="return confirm('Zmazať záznam?');">
         <button type="submit">Vymazať</button>
