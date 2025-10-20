@@ -1,13 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify, send_from_directory, abort
+from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-import io
+import io, os, logging
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-import logging
-import os
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -23,17 +21,14 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 
-logging.basicConfig(
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    level=logging.INFO
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 # ---------- MODELS ----------
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    email = db.Column(db.String(120), unique=True)
+    email = db.Column(db.String(120))
     password = db.Column(db.String(200))
     is_admin = db.Column(db.Boolean, default=False)
 
@@ -66,6 +61,7 @@ class Document(db.Model):
 
 
 # ---------- ROUTES ----------
+
 @app.route('/')
 def login():
     return render_template('login.html')
@@ -79,8 +75,7 @@ def do_login():
     if user and check_password_hash(user.password, password):
         session['user'] = {'id': user.id, 'name': user.name, 'is_admin': user.is_admin}
         return redirect(url_for('dashboard'))
-    flash("Zlé meno alebo heslo", "danger")
-    return render_template('login.html')
+    return render_template('login.html', error="Zlé meno alebo heslo")
 
 
 @app.route('/logout')
@@ -89,34 +84,31 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/dashboard', methods=['GET'])
 def dashboard():
-    user = session.get('user')
-    if not user:
+    session_user = session.get('user')
+    if not session_user:
         return redirect(url_for('login'))
 
-    # 🔹 Získanie parametrov filtra
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
 
-    # 🔹 Základný query builder
     query = Record.query
 
-    # Admin môže filtrovať ľudí, bežný user len seba
-    if user['is_admin']:
+    # 🔹 ak je admin, môže filtrovať
+    if session_user.get('is_admin'):
         if selected_user:
             query = query.filter_by(user_id=selected_user)
     else:
-        query = query.filter_by(user_id=user['id'])
+        query = query.filter_by(user_id=session_user['id'])
 
     if selected_project:
         query = query.filter_by(project_id=selected_project)
 
     records = query.order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
-    users = User.query.order_by(User.name).all() if user['is_admin'] else []
+    users = User.query.order_by(User.name).all() if session_user.get('is_admin') else []
 
-    # Súhrny
     total = sum([r.amount for r in records]) if records else 0
     project_count = len(set(r.project_id for r in records)) if records else 0
 
@@ -137,7 +129,7 @@ def dashboard():
 
     return render_template(
         'dashboard.html',
-        user=user,
+        user=session_user,
         users=users,
         projects=projects,
         records=records,
@@ -151,14 +143,15 @@ def dashboard():
         selected_project=selected_project
     )
 
+
 @app.route('/add_record', methods=['POST'])
 def add_record():
-    user = session.get('user')
-    if not user:
+    session_user = session.get('user')
+    if not session_user:
         return redirect(url_for('login'))
 
     rec = Record(
-        user_id=user['id'],
+        user_id=session_user['id'],
         project_id=int(request.form['project_id']),
         date=request.form['date'],
         amount=float(request.form['amount']) if request.form['amount'] else 0,
@@ -166,214 +159,62 @@ def add_record():
     )
     db.session.add(rec)
     db.session.commit()
-    flash("✅ Záznam pridaný!", "success")
-    return redirect(url_for('dashboard'))
-
-
-@app.route('/entry/<int:id>/json')
-def entry_json(id):
-    user = session.get('user')
-    if not user:
-        return jsonify({'error': 'not logged'}), 401
-    r = Record.query.get_or_404(id)
-    if r.user_id != user['id'] and not user.get('is_admin'):
-        return jsonify({'error': 'forbidden'}), 403
-    return jsonify({
-        'id': r.id,
-        'user_id': r.user_id,
-        'project_id': r.project_id,
-        'date': r.date,
-        'amount': r.amount,
-        'note': r.note or ''
-    })
-
-
-@app.route('/entry/update', methods=['POST'])
-def entry_update():
-    user = session.get('user')
-    if not user:
-        return redirect(url_for('login'))
-    rid = int(request.form.get('id'))
-    r = Record.query.get_or_404(rid)
-    if r.user_id != user['id'] and not user.get('is_admin'):
-        flash("Nemáte oprávnenie upraviť tento záznam.", "danger")
-        return redirect(url_for('dashboard'))
-    r.project_id = int(request.form.get('project_id'))
-    r.date = request.form.get('date')
-    r.amount = float(request.form.get('amount') or 0)
-    r.note = request.form.get('note')
-    db.session.commit()
-    flash("✅ Záznam upravený.", "success")
-    return redirect(url_for('dashboard'))
-
-
-@app.route('/delete_record/<int:id>', methods=['POST'])
-def delete_record(id):
-    user = session.get('user')
-    if not user:
-        return redirect(url_for('login'))
-    r = Record.query.get_or_404(id)
-    if r.user_id != user['id'] and not user.get('is_admin'):
-        flash("Nemáte oprávnenie zmazať tento záznam.", "danger")
-        return redirect(url_for('dashboard'))
-    db.session.delete(r)
-    db.session.commit()
-    flash("🗑️ Záznam zmazaný.", "info")
+    flash("Záznam bol pridaný!", "success")
     return redirect(url_for('dashboard'))
 
 
 @app.route('/projects')
 def projects():
-    user = session.get('user')
-    if not user or not user['is_admin']:
+    session_user = session.get('user')
+    if not session_user or not session_user.get('is_admin'):
         return redirect(url_for('login'))
     all_projects = Project.query.order_by(Project.name).all()
     return render_template('project.html', projects=all_projects)
 
 
-@app.route('/add_project', methods=['POST'])
-def add_project():
-    user = session.get('user')
-    if not user or not user['is_admin']:
-        return redirect(url_for('login'))
-    name = request.form['name']
-    unit_type = request.form['unit_type']
-    p = Project(name=name, unit_type=unit_type)
-    db.session.add(p)
-    db.session.commit()
-    flash("✅ Projekt pridaný.", "success")
-    return redirect(url_for('projects'))
-
-
-@app.route('/project/<int:id>')
-def project_detail(id):
-    user = session.get('user')
-    if not user or not user['is_admin']:
-        return redirect(url_for('login'))
-    proj = Project.query.get_or_404(id)
-    records = Record.query.filter_by(project_id=id).order_by(Record.date.desc()).all()
-    details = []
-    agg = {}
-    for r in records:
-        uname = r.user.name if r.user else 'Neznámy'
-        details.append({'username': uname, 'date': r.date, 'amount': r.amount, 'note': r.note})
-        agg.setdefault(uname, {'h': 0.0, 'm2': 0.0})
-        if proj.unit_type == 'hodiny':
-            agg[uname]['h'] += (r.amount or 0)
-        else:
-            agg[uname]['m2'] += (r.amount or 0)
-    per_user = [{'user': k, 'h': v['h'], 'm2': v['m2']} for k, v in agg.items()]
-    total_h = sum(x['h'] for x in per_user)
-    total_m2 = sum(x['m2'] for x in per_user)
-    return render_template('project_detail.html', project=proj, details=details, per_user=per_user, total_h=total_h, total_m2=total_m2)
-
-
 @app.route('/users')
 def users_list():
-    user = session.get('user')
-    if not user or not user['is_admin']:
+    session_user = session.get('user')
+    if not session_user or not session_user.get('is_admin'):
         return redirect(url_for('login'))
     all_users = User.query.order_by(User.name).all()
     return render_template('users.html', users=all_users)
 
 
-@app.route('/create_user', methods=['GET', 'POST'])
-def create_user():
-    user = session.get('user')
-    if not user or not user.get('is_admin'):
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form.get('email')
-        password = request.form['password']
-        is_admin = bool(request.form.get('is_admin'))
-
-        if User.query.filter_by(name=name).first():
-            flash("Používateľ s týmto menom už existuje.", "danger")
-            return redirect(url_for('create_user'))
-
-        new_user = User(
-            name=name,
-            email=email,
-            password=generate_password_hash(password),
-            is_admin=is_admin
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        flash("✅ Používateľ bol úspešne vytvorený!", "success")
-        return redirect(url_for('users_list'))
-
-    return render_template('create_user.html')
-
-
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
-    user = session.get('user')
-    if not user:
+    session_user = session.get('user')
+    if not session_user:
         return redirect(url_for('login'))
+
     if request.method == 'POST':
         file = request.files.get('file')
         if file and file.filename:
             safe = secure_filename(file.filename)
-            fname = f"{user['id']}_{int(datetime.utcnow().timestamp())}_{safe}"
+            fname = f"{session_user['id']}_{int(datetime.utcnow().timestamp())}_{safe}"
             path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
             file.save(path)
-            doc = Document(user_id=user['id'], filename=fname)
+            doc = Document(user_id=session_user['id'], filename=fname)
             db.session.add(doc)
             db.session.commit()
-            flash("📄 Dokument nahraný!", "success")
+            flash("Dokument nahraný!", "success")
             return redirect(url_for('documents'))
         flash("Nebolo možné nahrať súbor.", "danger")
-    user_docs = Document.query.filter_by(user_id=user['id']).all()
+
+    user_docs = Document.query.filter_by(user_id=session_user['id']).all()
     return render_template('documents.html', documents=user_docs)
 
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
-    user = session.get('user')
-    if not user:
+    session_user = session.get('user')
+    if not session_user:
         return redirect(url_for('login'))
     doc = Document.query.filter_by(filename=filename).first_or_404()
-    if not (user.get('is_admin') or doc.user_id == user['id']):
-        flash("Nemáte prístup k tomuto súboru.", "danger")
+    if not (session_user.get('is_admin') or doc.user_id == session_user['id']):
+        flash("Nemáte prístup k tomuto súboru.")
         return redirect(url_for('documents'))
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-
-@app.route('/export/pdf')
-def export_pdf():
-    user = session.get('user')
-    if not user:
-        return redirect(url_for('login'))
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, 800, f"HRC & Navate - Týždenný report: {user['name']}")
-    y = 770
-    records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
-    for r in records:
-        proj = Project.query.get(r.project_id)
-        line = f"{r.date} | {proj.name if proj else 'N/A'} | {r.amount} {proj.unit_type if proj else ''} | {r.note or ''}"
-        p.drawString(100, y, line)
-        y -= 20
-        if y < 50:
-            p.showPage()
-            y = 800
-    p.save()
-    buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name='report.pdf', mimetype='application/pdf')
-
-
-@app.route('/fix_admin')
-def fix_admin():
-    admin = User.query.filter_by(name='admin').first()
-    if admin:
-        admin.password = generate_password_hash('admin123')
-        db.session.commit()
-        return "✅ Admin heslo resetnuté na admin123"
-    else:
-        return "❌ Admin neexistuje"
 
 
 # ---------- DB INIT ----------
