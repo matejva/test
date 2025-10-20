@@ -5,7 +5,7 @@
   <tr><th>Pracovník</th><th>Dátum</th><th>Množstvo</th><th>Poznámka</th></tr>
   {% for r in details %}
   <tr>
-    <td>{{ r.username }}</td>
+    <td>{{ r.user_name }}</td>
     <td>{{ r.date }}</td>
     <td>{{ r.amount }} {{ project.unit_type }}</td>
     <td>{{ r.note }}</td>
