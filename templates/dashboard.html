@@ -32,7 +32,7 @@
       </a>
     </form>
 
-    <!-- 🔹 Tlačidlá: Export + Pridať -->
+    <!-- 🔹 Export + Pridať -->
     <div class="d-flex gap-2 mt-2 mt-md-0">
       <a href="{{ url_for('export_pdf', user_id=selected_user, project_id=selected_project) }}" 
          class="btn btn-outline-danger">
@@ -49,7 +49,7 @@
   <div class="row g-3 mb-4">
     <div class="col-md-3 col-6">
       <div class="card stat-card shadow-sm">
-        <h6 class="text-muted mb-1">Celkový čas</h6>
+        <h6 class="text-muted mb-1">Celkový výkon</h6>
         <h2 class="fw-bold text-primary mb-0">{{ "%.2f"|format(total) }}</h2>
         <small class="text-muted">hodín / m²</small>
       </div>
@@ -70,23 +70,26 @@
           <i class="fa fa-chart-line text-primary me-2"></i>
           <h6 class="fw-semibold mb-0">Výkon podľa dátumu</h6>
         </div>
-        <canvas id="hoursChart"
-          data-labels='{{ chart_labels|tojson }}'
-          data-values='{{ chart_values|tojson }}'
-          style="height: 300px;"></canvas>
+        <div style="height: 280px;">
+          <canvas id="hoursChart"
+            data-labels='{{ chart_labels|tojson }}'
+            data-values='{{ chart_values|tojson }}'></canvas>
+        </div>
       </div>
     </div>
 
     <div class="col-lg-6 col-md-12">
-      <div class="card shadow-sm p-4 h-100">
-        <div class="d-flex align-items-center mb-3">
+      <div class="card shadow-sm p-4 h-100 text-center">
+        <div class="d-flex align-items-center justify-content-center mb-3">
           <i class="fa fa-chart-pie text-primary me-2"></i>
           <h6 class="fw-semibold mb-0">Výkon podľa projektu</h6>
         </div>
-        <canvas id="projectChart"
-          data-labels='{{ project_labels|tojson }}'
-          data-values='{{ project_values|tojson }}'
-          style="height: 300px;"></canvas>
+        <div class="d-flex justify-content-center" style="height: 260px;">
+          <canvas id="projectChart"
+            data-labels='{{ project_labels|tojson }}'
+            data-values='{{ project_values|tojson }}'
+            style="max-width: 80%; max-height: 250px;"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -106,7 +109,11 @@
             <th>Používateľ</th>
             {% endif %}
             <th>Množstvo</th>
+            <th>Jednotka</th>
             <th>Poznámka</th>
+            {% if user.is_admin %}
+            <th>Akcia</th>
+            {% endif %}
           </tr>
         </thead>
         <tbody>
@@ -118,7 +125,18 @@
             <td>{{ r.user.name if r.user else '—' }}</td>
             {% endif %}
             <td>{{ "%.2f"|format(r.amount) }}</td>
+            <td>{{ r.unit_type or '' }}</td>
             <td>{{ r.note or '' }}</td>
+            {% if user.is_admin %}
+            <td>
+              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" 
+                    onsubmit="return confirm('Naozaj chceš zmazať tento záznam?')">
+                <button class="btn btn-sm btn-outline-danger">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </form>
+            </td>
+            {% endif %}
           </tr>
           {% endfor %}
         </tbody>
@@ -153,7 +171,14 @@
             <input type="date" name="date" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Množstvo (hodiny / m²)</label>
+            <label class="form-label">Typ jednotky</label>
+            <select name="unit_type" class="form-select" required>
+              <option value="hodiny">Hodiny</option>
+              <option value="m2">m²</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Množstvo</label>
             <input type="number" name="amount" step="0.1" class="form-control" required>
           </div>
           <div class="mb-3">
@@ -185,16 +210,26 @@ document.addEventListener("DOMContentLoaded", () => {
         datasets: [{
           label: 'Výkon (hodiny / m²)',
           data: data,
-          backgroundColor: 'rgba(0,191,166,0.7)',
-          borderRadius: 8,
+          backgroundColor: 'rgba(0,191,166,0.8)',
+          borderRadius: 6,
+          barThickness: 30,
           maxBarThickness: 40
         }]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, grid: { color: 'rgba(200,200,200,0.2)' } },
-          x: { grid: { display: false } }
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(220,220,220,0.3)' },
+            ticks: { color: '#555' }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#777' }
+          }
         }
       }
     });
@@ -219,9 +254,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }]
       },
       options: {
-        cutout: '70%',
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '75%',
+        layout: { padding: 10 },
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 14, color: '#333' } }
+          legend: { 
+            position: 'bottom', 
+            labels: { boxWidth: 12, color: '#333', padding: 15 }
+          },
+          tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#000',
+            bodyColor: '#000',
+            borderColor: '#00bfa6',
+            borderWidth: 1
+          }
         }
       }
     });
