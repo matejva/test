@@ -1,38 +1,35 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Projekty</h2>
+{% extends 'base.html' %}
 
-<!-- Form na pridanie nového projektu -->
-<form action="{{ url_for('add_project') }}" method="POST">
-  <input name="name" placeholder="Názov projektu" required>
-  <select name="unit_type" required>
-    <option value="hodiny">Hodiny</option>
-    <option value="m2">m²</option>
-  </select>
-  <button type="submit">Pridať projekt</button>
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Projekty</h2>
+
+<form method="POST" action="{{ url_for('add_project') }}" class="mb-4 flex gap-2">
+    <input type="text" name="name" placeholder="Názov projektu" class="border p-2 rounded w-64">
+    <select name="unit_type" class="border p-2 rounded">
+        <option value="hodiny">Hodiny</option>
+        <option value="m2">m²</option>
+    </select>
+    <button type="submit" class="bg-green-600 text-white p-2 rounded hover:bg-green-700">Pridať projekt</button>
 </form>
 
-<!-- Tabuľka existujúcich projektov -->
-<table>
-  <thead>
-    <tr>
-      <th>Názov</th>
-      <th>Typ</th>
-      <th>Detail</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for p in projects %}
-    <tr>
-      <td>{{ p.name }}</td>
-      <td>{{ p.unit_type }}</td>
-      <td><a href="{{ url_for('project_detail', id=p.id) }}">Otvoriť</a></td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="3">Žiadne projekty</td>
-    </tr>
-    {% endfor %}
-  </tbody>
+<table class="min-w-full bg-white rounded shadow">
+    <thead>
+        <tr class="bg-gray-200 text-left">
+            <th class="p-2">Názov</th>
+            <th class="p-2">Typ</th>
+            <th class="p-2">Akcie</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in projects %}
+        <tr class="border-b hover:bg-gray-50">
+            <td class="p-2">{{ p.name }}</td>
+            <td class="p-2">{{ p.unit_type }}</td>
+            <td class="p-2">
+                <a href="{{ url_for('project_detail', id=p.id) }}" class="bg-blue-600 text-white p-1 rounded hover:bg-blue-700">Detail</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 {% endblock %}
