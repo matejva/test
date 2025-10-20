@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Projekty</h2>
+<form action="/add_project" method="POST">
+  <input name="name" placeholder="Názov projektu" required>
+  <select name="unit_type">
+    <option value="hodiny">Hodiny</option>
+    <option value="m2">m²</option>
+  </select>
+  <button type="submit">Pridať projekt</button>
+</form>
+
+<table>
+  <tr><th>Názov</th><th>Typ</th><th>Detail</th></tr>
+  {% for p in projects %}
+  <tr>
+    <td>{{ p.name }}</td>
+    <td>{{ p.unit_type }}</td>
+    <td><a href="/project/{{ p.id }}">Otvoriť</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
