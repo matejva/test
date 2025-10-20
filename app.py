@@ -95,18 +95,40 @@ def dashboard():
     if not user:
         return redirect(url_for('login'))
 
+    # Dáta používateľa
     records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
-    total = sum([r.amount for r in records]) if records else 0
 
-    # ✅ dôležité — pridávame datetime, aby fungoval v Jinja2
+    # Súhrny
+    total = sum([r.amount for r in records]) if records else 0
+    project_count = len(set(r.project_id for r in records)) if records else 0
+
+    # 📊 Dáta pre graf výkonu podľa dní
+    date_map = {}
+    for r in records:
+        date_map[r.date] = date_map.get(r.date, 0) + r.amount
+    chart_labels = list(date_map.keys())
+    chart_values = list(date_map.values())
+
+    # 🥧 Dáta pre graf podľa projektov
+    project_map = {}
+    for r in records:
+        pname = r.project.name if r.project else "Neznámy projekt"
+        project_map[pname] = project_map.get(pname, 0) + r.amount
+    project_labels = list(project_map.keys())
+    project_values = list(project_map.values())
+
     return render_template(
         'dashboard.html',
         user=user,
         records=records,
         projects=projects,
         total=total,
-        datetime=datetime
+        project_count=project_count,
+        chart_labels=chart_labels,
+        chart_values=chart_values,
+        project_labels=project_labels,
+        project_values=project_values
     )
 
 
