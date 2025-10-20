@@ -1,44 +1,26 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sk">
 <head>
-  <meta charset="utf-8">
-  <title>TimeLog</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>HRC & Navate</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
-<body class="bg-light">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">🕒 TimeLog</a>
-      {% if current_user.is_authenticated %}
-      <div class="navbar-nav">
-        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a class="nav-link" href="{{ url_for('entries') }}">Záznamy</a>
-        <a class="nav-link" href="{{ url_for('add_entry') }}">+ Pridať</a>
-        {% if current_user.is_admin %}
-        <a class="nav-link" href="{{ url_for('admin_panel') }}">Admin</a>
-        {% endif %}
-        <a class="nav-link text-warning" href="{{ url_for('logout') }}">Odhlásiť</a>
-      </div>
+<body>
+  <header>
+    <h1>HRC & Navate</h1>
+    <nav>
+      <a href="/dashboard">Dashboard</a>
+      {% if session['user']['role'] == 'admin' %}
+      <a href="/projects">Projekty</a>
       {% endif %}
-    </div>
-  </nav>
-
-  <div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ 'success' if cat=='success' else 'danger' }} alert-dismissible fade show" role="alert">
-            {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
+      <a href="/logout">Odhlásiť sa</a>
+    </nav>
+  </header>
+  <main>
     {% block content %}{% endblock %}
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </main>
 </body>
 </html>
+
 
