@@ -1,21 +1,129 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Projekty</h2>
+<div class="container-fluid">
 
-<h3>Pridať projekt</h3>
-<form method="POST" action="{{ url_for('add_project') }}">
-    <input type="text" name="name" placeholder="Názov projektu" required>
-    <select name="unit_type" required>
-        <option value="hodiny">Hodiny</option>
-        <option value="m2">m2</option>
-    </select>
-    <button type="submit">Pridať projekt</button>
-</form>
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold"><i class="bi bi-kanban me-2"></i>Správa projektov</h3>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Späť na prehľad
+    </a>
+  </div>
 
-<h3>Existujúce projekty</h3>
-<ul>
-    {% for p in projects %}
-        <li><a href="{{ url_for('project_detail', id=p.id) }}">{{ p.name }}</a> ({{ p.unit_type }})</li>
-    {% endfor %}
-</ul>
+  <!-- Add Project Form -->
+  <div class="card glass-card p-4 mb-4 shadow-sm">
+    <h5 class="mb-3"><i class="bi bi-plus-circle"></i> Pridať projekt</h5>
+    <form method="POST" action="{{ url_for('add_project') }}" class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Názov projektu</label>
+        <input type="text" name="name" class="form-control" placeholder="napr. Zákazka 101" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Jednotka</label>
+        <select name="unit_type" class="form-select" required>
+          <option value="hodiny">hodiny</option>
+          <option value="m²">m²</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Popis (voliteľný)</label>
+        <input type="text" name="description" class="form-control" placeholder="stručný popis projektu">
+      </div>
+      <div class="col-md-1 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-check2-circle"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Projects Table -->
+  <div class="card glass-card p-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0"><i class="bi bi-list-task"></i> Zoznam projektov</h5>
+      <span class="badge bg-success fs-6 px-3">Počet: {{ projects|length }}</span>
+    </div>
+
+    {% if projects %}
+    <div class="table-responsive">
+      <table class="table align-middle table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Názov</th>
+            <th>Jednotka</th>
+            <th>Popis</th>
+            <th>Vytvorené</th>
+            <th class="text-end">Akcie</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td class="fw-semibold">{{ p.name }}</td>
+            <td>{{ p.unit_type }}</td>
+            <td>{{ p.description or '' }}</td>
+            <td>{{ p.created_at.strftime('%d.%m.%Y') if p.created_at else '' }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('project_detail', id=p.id) }}" class="btn btn-sm btn-outline-secondary me-1">
+                <i class="bi bi-eye"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-primary me-1"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editProjectModal"
+                      data-id="{{ p.id }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form action="{{ url_for('delete_project', id=p.id) }}" method="POST" class="d-inline">
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Naozaj zmazať projekt?')">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-muted text-center my-4">Zatiaľ neexistujú žiadne projekty.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal: Edit Project -->
+<div class="modal fade" id="editProjectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Upraviť projekt</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('update_project') }}">
+        <div class="modal-body">
+          <input type="hidden" name="id" id="edit-project-id">
+          <div class="mb-3">
+            <label class="form-label">Názov projektu</label>
+            <input type="text" name="name" id="edit-project-name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Jednotka</label>
+            <select name="unit_type" id="edit-project-unit" class="form-select" required>
+              <option value="hodiny">hodiny</option>
+              <option value="m²">m²</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Popis</label>
+            <input type="text" name="description" id="edit-project-description" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Zrušiť</button>
+          <button type="submit" class="btn btn-primary">Uložiť zmeny</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
