@@ -1,14 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="login-container">
-    <h2>Prihlásenie</h2>
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% endif %}
-    <form method="POST" action="{{ url_for('do_login') }}">
-        <input type="text" name="username" placeholder="Používateľské meno" required>
-        <input type="password" name="password" placeholder="Heslo" required>
-        <button type="submit">Prihlásiť sa</button>
-    </form>
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card glass-card shadow-sm p-4">
+      <h3 class="mb-3">Prihlásenie</h3>
+      {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+      <form method="post" action="{{ url_for('do_login') }}">
+        <div class="mb-3">
+          <label class="form-label">Meno</label>
+          <input class="form-control" name="username" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Heslo</label>
+          <input class="form-control" type="password" name="password" required>
+        </div>
+        <button class="btn btn-primary w-100">Prihlásiť</button>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
