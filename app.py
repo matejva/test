@@ -163,34 +163,51 @@ def add_record():
     return redirect(url_for('dashboard'))
 
 
+# -------- Projekty --------
 @app.route('/projects')
 def projects():
     user = session.get('user')
-    if not user:
+    if not user or not user.get('is_admin'):
         return redirect(url_for('login'))
-
-    # ak nie je admin, nech ho presmeruje
-    if not user.get('is_admin', False):
-        flash("Nemáte oprávnenie zobraziť projekty.", "danger")
-        return redirect(url_for('dashboard'))
-
     all_projects = Project.query.order_by(Project.name).all()
     return render_template('project.html', projects=all_projects, user=user)
+
 
 @app.route('/add_project', methods=['POST'])
 def add_project():
     user = session.get('user')
     if not user or not user.get('is_admin'):
         return redirect(url_for('login'))
-
     name = request.form['name']
     unit_type = request.form['unit_type']
-
-    project = Project(name=name, unit_type=unit_type)
-    db.session.add(project)
+    p = Project(name=name, unit_type=unit_type)
+    db.session.add(p)
     db.session.commit()
     flash("✅ Projekt pridaný!", "success")
     return redirect(url_for('projects'))
+
+
+@app.route('/project/<int:id>')
+def project_detail(id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        return redirect(url_for('login'))
+    proj = Project.query.get_or_404(id)
+    records = Record.query.filter_by(project_id=id).order_by(Record.date.desc()).all()
+    details, agg = [], {}
+    for r in records:
+        uname = r.user.name if r.user else 'Neznámy'
+        details.append({'username': uname, 'date': r.date, 'amount': r.amount, 'note': r.note})
+        agg.setdefault(uname, {'h': 0.0, 'm2': 0.0})
+        if proj.unit_type == 'hodiny':
+            agg[uname]['h'] += (r.amount or 0)
+        else:
+            agg[uname]['m2'] += (r.amount or 0)
+    per_user = [{'user': k, 'h': v['h'], 'm2': v['m2']} for k, v in agg.items()]
+    total_h = sum(x['h'] for x in per_user)
+    total_m2 = sum(x['m2'] for x in per_user)
+    return render_template('project_detail.html', project=proj, details=details, per_user=per_user,
+                           total_h=total_h, total_m2=total_m2)
 
 
 # ---------- USERS ----------
