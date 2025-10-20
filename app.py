@@ -211,6 +211,57 @@ def delete_project(id):
     flash("Projekt bol odstránený.", "success")
     return redirect(url_for('projects'))
 
+# ---------- PROJECT DETAIL ----------
+@app.route('/project/<int:id>')
+def project_detail(id):
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('login'))
+
+    project = Project.query.get_or_404(id)
+
+    # Záznamy k projektu
+    records = (
+        Record.query.filter_by(project_id=id)
+        .join(User, Record.user_id == User.id)
+        .add_columns(User.name.label('username'),
+                     Record.date,
+                     Record.amount,
+                     Record.unit_type,
+                     Record.note)
+        .order_by(Record.date.desc())
+        .all()
+    )
+
+    # Sumár podľa používateľov a jednotiek
+    per_user = []
+    total_h, total_m2 = 0, 0
+    user_sums = {}
+    for r in records:
+        uname = r.username
+        if uname not in user_sums:
+            user_sums[uname] = {'h': 0, 'm2': 0}
+        if r.unit_type == 'hodiny':
+            user_sums[uname]['h'] += r.amount
+            total_h += r.amount
+        elif r.unit_type == 'm2':
+            user_sums[uname]['m2'] += r.amount
+            total_m2 += r.amount
+
+    for uname, vals in user_sums.items():
+        per_user.append({'user': uname, 'h': vals['h'], 'm2': vals['m2']})
+
+    # Render detailu projektu
+    return render_template(
+        'project_detail.html',
+        project=project,
+        details=records,
+        per_user=per_user,
+        total_h=total_h,
+        total_m2=total_m2,
+        user=user
+    )
+
 
 # ---------- PDF EXPORT ----------
 @app.route('/export/pdf')
