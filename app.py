@@ -89,28 +89,45 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
 
-    # Dáta používateľa
-    records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
+    # 🔹 Získanie parametrov filtra
+    selected_user = request.args.get('user_id', type=int)
+    selected_project = request.args.get('project_id', type=int)
+
+    # 🔹 Základný query builder
+    query = Record.query
+
+    # Admin môže filtrovať ľudí, bežný user len seba
+    if user['is_admin']:
+        if selected_user:
+            query = query.filter_by(user_id=selected_user)
+    else:
+        query = query.filter_by(user_id=user['id'])
+
+    if selected_project:
+        query = query.filter_by(project_id=selected_project)
+
+    records = query.order_by(Record.date.desc()).all()
     projects = Project.query.order_by(Project.name).all()
+    users = User.query.order_by(User.name).all() if user['is_admin'] else []
 
     # Súhrny
     total = sum([r.amount for r in records]) if records else 0
     project_count = len(set(r.project_id for r in records)) if records else 0
 
-    # 📊 Dáta pre graf výkonu podľa dní
+    # 📊 Výkon podľa dní
     date_map = {}
     for r in records:
         date_map[r.date] = date_map.get(r.date, 0) + r.amount
     chart_labels = list(date_map.keys())
     chart_values = list(date_map.values())
 
-    # 🥧 Dáta pre graf podľa projektov
+    # 🥧 Výkon podľa projektu
     project_map = {}
     for r in records:
         pname = r.project.name if r.project else "Neznámy projekt"
@@ -121,16 +138,18 @@ def dashboard():
     return render_template(
         'dashboard.html',
         user=user,
-        records=records,
+        users=users,
         projects=projects,
+        records=records,
         total=total,
         project_count=project_count,
         chart_labels=chart_labels,
         chart_values=chart_values,
         project_labels=project_labels,
-        project_values=project_values
+        project_values=project_values,
+        selected_user=selected_user,
+        selected_project=selected_project
     )
-
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
