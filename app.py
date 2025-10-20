@@ -209,6 +209,39 @@ def project_detail(id):
     return render_template('project_detail.html', project=proj, details=details, per_user=per_user,
                            total_h=total_h, total_m2=total_m2)
 
+@app.route('/export/pdf')
+def export_pdf():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('login'))
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, 800, f"HRC & Navate - Report: {user['name']}")
+
+    y = 770
+    records = Record.query.filter_by(user_id=user['id']).order_by(Record.date.desc()).all()
+    for r in records:
+        proj = Project.query.get(r.project_id)
+        line = f"{r.date} | {proj.name if proj else 'N/A'} | {r.amount} {proj.unit_type if proj else ''} | {r.note or ''}"
+        p.setFont("Helvetica", 10)
+        p.drawString(100, y, line)
+        y -= 18
+        if y < 50:
+            p.showPage()
+            y = 800
+
+    p.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"{user['name']}_report.pdf",
+        mimetype='application/pdf'
+    )
+
 
 # ---------- USERS ----------
 @app.route('/users')
