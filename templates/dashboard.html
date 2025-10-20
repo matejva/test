@@ -1,32 +1,47 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+
 {% block content %}
-<h2>Moje záznamy</h2>
-<form action="{{ url_for('add_record') }}" method="POST">
-  <label>Dátum:</label><input type="date" name="date" required>
-  <label>Projekt:</label>
-  <select name="project_id" required>
-    {% for p in projects %}
-    <option value="{{ p.id }}">{{ p.name }} ({{ p.unit_type }})</option>
-    {% endfor %}
-  </select>
-  <label>Hodnota:</label><input type="number" step="0.1" name="amount" required>
-  <label>Poznámka:</label><input type="text" name="note">
-  <button type="submit">Pridať</button>
-</form>
+<h2 class="text-xl font-bold mb-4">Dashboard - Týždeň</h2>
 
-<a class="pdf-btn" href="{{ url_for('export_pdf') }}">📄 Export PDF</a>
+<div class="mb-4 flex justify-between items-center">
+    <form method="POST" action="{{ url_for('add_record') }}" class="flex gap-2 items-center">
+        <select name="project_id" class="border p-2 rounded">
+            {% for p in projects %}
+                <option value="{{ p.id }}">{{ p.name }} ({{ p.unit_type }})</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="date" class="border p-2 rounded">
+        <input type="number" step="0.1" name="amount" placeholder="Hodiny / m²" class="border p-2 rounded w-28">
+        <input type="text" name="note" placeholder="Poznámka" class="border p-2 rounded w-40">
+        <button type="submit" class="bg-green-600 text-white p-2 rounded hover:bg-green-700">Pridať</button>
+    </form>
+    <a href="{{ url_for('export_pdf') }}" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Export PDF</a>
+</div>
 
-<table>
-  <tr><th>Dátum</th><th>Projekt</th><th>Množstvo</th><th>Poznámka</th></tr>
-  {% for r in records %}
-  <tr>
-    <td>{{ r.date }}</td>
-    <td>{{ r.project.name if r.project else '' }}</td>
-    <td>{{ r.amount }}</td>
-    <td>{{ r.note }}</td>
-  </tr>
-  {% else %}
-  <tr><td colspan="4">Žiadne záznamy</td></tr>
-  {% endfor %}
+<table class="min-w-full bg-white rounded shadow">
+    <thead>
+        <tr class="bg-gray-200 text-left">
+            <th class="p-2">Dátum</th>
+            <th class="p-2">Projekt</th>
+            <th class="p-2">Hodiny / m²</th>
+            <th class="p-2">Poznámka</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in records %}
+        <tr class="border-b hover:bg-gray-50">
+            <td class="p-2">{{ r.date }}</td>
+            <td class="p-2">{{ r.project.name if r.project else 'Neznámy' }}</td>
+            <td class="p-2">{{ r.amount }}</td>
+            <td class="p-2">{{ r.note }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="font-bold bg-gray-100">
+            <td class="p-2">Celkom</td>
+            <td></td>
+            <td class="p-2">{{ total }}</td>
+            <td></td>
+        </tr>
+    </tbody>
 </table>
 {% endblock %}
