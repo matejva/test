@@ -2,95 +2,61 @@
 {% block content %}
 
 <style>
-:root {
-  --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #f9fbff 100%);
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.25);
-  --text-color: #1e293b;
-  --accent: #00bfa6;
-  --shadow: rgba(0, 0, 0, 0.1);
-}
-
-body.dark-mode {
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  --glass-bg: rgba(30, 41, 59, 0.5);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --text-color: #f1f5f9;
-  --accent: #4fd1c5;
-  --shadow: rgba(0, 0, 0, 0.4);
-}
-
-body {
-  background: var(--bg-gradient);
-  color: var(--text-color);
-  font-family: 'Inter', sans-serif;
-  transition: background 0.5s ease, color 0.3s ease;
-}
-
-.glass-card {
-  backdrop-filter: blur(16px);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px var(--shadow);
-  transition: all 0.3s ease;
-}
-
-.glass-card:hover { transform: translateY(-2px); }
-
-/* 🌗 Fancy theme switch */
-.theme-switch {
-  position: relative;
-  width: 60px;
-  height: 32px;
-  border-radius: 50px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  cursor: pointer;
-  transition: all 0.4s ease;
+/* 💠 Elegantné rádio guličky */
+.fancy-radio {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 6px;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
-}
-
-.theme-switch i {
-  font-size: 1.2rem;
+  gap: 0.5em;
+  padding: 0.4em 0.8em;
+  border-radius: 10px;
+  background: rgba(0, 191, 166, 0.08);
   transition: all 0.3s ease;
-  color: var(--text-color);
+  cursor: pointer;
 }
 
-.theme-ball {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 26px;
-  height: 26px;
-  background: var(--accent);
+.fancy-radio:hover {
+  background: rgba(0, 191, 166, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Gulička */
+.fancy-radio .form-check-input {
+  appearance: none;
+  width: 1.2em;
+  height: 1.2em;
   border-radius: 50%;
-  transition: all 0.4s ease;
-  box-shadow: 0 0 10px var(--accent);
+  border: 2px solid var(--accent);
+  background-color: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
 }
 
-body.dark-mode .theme-ball {
-  left: 31px;
+/* Zapnutá gulička */
+.fancy-radio .form-check-input:checked {
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: pulse 0.3s ease;
 }
 
-.btn-glass {
-  backdrop-filter: blur(10px);
-  background: rgba(0, 191, 166, 0.25);
-  border: 1px solid rgba(0, 191, 166, 0.4);
-  color: #006a58;
+/* Text vedľa */
+.fancy-radio .form-check-label {
+  margin-left: 0.4em;
+  font-weight: 500;
+  color: var(--text-color);
+  transition: color 0.3s ease;
 }
-body.dark-mode .btn-glass {
-  background: rgba(79, 209, 197, 0.25);
-  border-color: rgba(79, 209, 197, 0.4);
-  color: #4fd1c5;
+
+.fancy-radio .form-check-input:checked + .form-check-label {
+  color: var(--accent);
 }
-.btn-glass:hover { background: rgba(0, 191, 166, 0.4); }
+
+/* Animácia kliknutia */
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
 </style>
 
 <div class="container-fluid py-3">
@@ -257,14 +223,18 @@ body.dark-mode .btn-glass {
             <input type="date" name="date" class="form-control" required>
           </div>
          <div class="col-md-3">
+<!-- 🟢 Typ jednotky -->
+<div class="mb-3">
   <label class="form-label d-block mb-2">Typ jednotky</label>
-  <div class="form-check form-check-inline">
-    <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
-    <label class="form-check-label" for="unit_hodiny">Hodiny</label>
-  </div>
-  <div class="form-check form-check-inline">
-    <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
-    <label class="form-check-label" for="unit_m2">m²</label>
+  <div class="d-flex gap-3 align-items-center flex-wrap">
+    <div class="form-check form-check-inline fancy-radio">
+      <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
+      <label class="form-check-label" for="unit_hodiny">🕒 Hodiny</label>
+    </div>
+    <div class="form-check form-check-inline fancy-radio">
+      <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
+      <label class="form-check-label" for="unit_m2">📐 m²</label>
+    </div>
   </div>
 </div>
           </div>
