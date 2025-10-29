@@ -161,6 +161,24 @@ def dashboard():
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
 
+    # výpočet výkonu podľa dátumu - rozdelené na hodiny a m2
+        records = Record.query.filter_by(user_id=user['id']).all() if not user['is_admin'] else Record.query.all()
+    
+        date_data_hours = {}
+        date_data_m2 = {}
+    
+        for r in records:
+            if r.unit_type == "hodiny":
+                date_data_hours[r.date] = date_data_hours.get(r.date, 0) + r.amount
+            elif r.unit_type == "m2":
+                date_data_m2[r.date] = date_data_m2.get(r.date, 0) + r.amount
+        
+        chart_labels_hours = list(date_data_hours.keys())
+        chart_values_hours = list(date_data_hours.values())
+        
+        chart_labels_m2 = list(date_data_m2.keys())
+        chart_values_m2 = list(date_data_m2.values())
+
     # --- 🔹 Render ---
     return render_template(
         'dashboard.html',
