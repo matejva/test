@@ -240,10 +240,13 @@ def delete_record(id):
 @app.route('/projects')
 def projects():
     user = session.get('user')
-    if not user or not user.get('is_admin'):
+    if not user:
         return redirect(url_for('login'))
-    all_projects = Project.query.order_by(Project.name).all()
-    return render_template('project.html', projects=all_projects, user=user)
+
+    all_projects = Project.query.all()
+    # admin = môže pridávať / upravovať
+    # bežný používateľ = len čítať
+    return render_template('projekt.html', projects=all_projects, is_admin=user['is_admin'], user=user)
 
 
 @app.route('/add_project', methods=['POST'])
