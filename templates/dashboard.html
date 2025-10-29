@@ -187,41 +187,51 @@ body.dark-mode .btn-glass {
   </div>
 
   <!-- Charts -->
-  <div class="row g-4 mb-4">
-    <div class="col-lg-12">
-      <div class="glass-card p-4">
-        <h6 class="fw-semibold mb-3">
-          <i class="fa fa-calendar text-success me-2"></i> Výkon podľa dátumu
-        </h6>
-        <div style="height: 280px;">
-          <canvas id="dateChart" 
-            data-labels='{{ chart_labels|tojson }}'
-            data-values='{{ chart_values|tojson }}'></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-6">
-      <div class="glass-card p-4">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
-        <div style="height: 280px;">
-          <canvas id="hoursChart" 
-            data-labels='{{ hours_labels|tojson }}'
-            data-values='{{ hours_values|tojson }}'></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="glass-card p-4">
-        <h6 class="fw-semibold mb-3"><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
-        <div style="height: 280px;">
-          <canvas id="m2Chart" 
-            data-labels='{{ m2_labels|tojson }}'
-            data-values='{{ m2_values|tojson }}'></canvas>
-        </div>
+ <div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="glass-card p-4">
+      <h6><i class="fa fa-clock text-info me-2"></i> Výkon podľa hodín</h6>
+      <div style="height:280px;">
+        <canvas id="hoursDateChart"
+          data-labels='{{ chart_labels_hours|tojson }}'
+          data-values='{{ chart_values_hours|tojson }}'></canvas>
       </div>
     </div>
   </div>
+  <div class="col-lg-6">
+    <div class="glass-card p-4">
+      <h6><i class="fa fa-ruler-combined text-warning me-2"></i> Výkon podľa m²</h6>
+      <div style="height:280px;">
+        <canvas id="m2DateChart"
+          data-labels='{{ chart_labels_m2|tojson }}'
+          data-values='{{ chart_values_m2|tojson }}'></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="glass-card p-4">
+      <h6><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
+      <div style="height:280px;">
+        <canvas id="hoursChart"
+          data-labels='{{ hours_labels|tojson }}'
+          data-values='{{ hours_values|tojson }}'></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="glass-card p-4">
+      <h6><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
+      <div style="height:280px;">
+        <canvas id="m2Chart"
+          data-labels='{{ m2_labels|tojson }}'
+          data-values='{{ m2_values|tojson }}'></canvas>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- Records Table -->
   <div class="glass-card p-4 mb-5">
@@ -376,6 +386,8 @@ document.addEventListener("DOMContentLoaded", () => {
   makeChart("dateChart", "line", "#00bfa6", true);
   makeChart("hoursChart", "bar", "#00bfa6");
   makeChart("m2Chart", "bar", "#ffca28");
+  makeChart("hoursDateChart", "line", "#00bfa6", true);
+  makeChart("m2DateChart", "line", "#ffca28", true);
 });
 </script>
 
