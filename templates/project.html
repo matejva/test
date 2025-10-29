@@ -109,14 +109,8 @@ body.dark-mode .btn-glass {
     {% if is_admin %}
     <h5 class="fw-semibold mb-3"><i class="fa fa-plus-circle text-success me-2"></i> Pridať nový projekt</h5>
     <form method="POST" action="{{ url_for('add_project') }}" class="row g-2 mb-4">
-      <div class="col-md-6">
+      <div class="col-md-9">
         <input type="text" name="name" class="form-control" placeholder="Názov projektu" required>
-      </div>
-      <div class="col-md-3">
-        <select name="unit_type" class="form-select">
-          <option value="hodiny">Hodiny</option>
-          <option value="m2">m²</option>
-        </select>
       </div>
       <div class="col-md-3 d-grid">
         <button type="submit" class="btn btn-primary">
@@ -135,14 +129,16 @@ body.dark-mode .btn-glass {
         <thead class="table-light">
           <tr>
             <th>Názov projektu</th>
-            <th>Typ jednotky</th>
           </tr>
         </thead>
         <tbody>
           {% for p in projects %}
           <tr>
-            <td>{{ p.name }}</td>
-            <td>{{ p.unit_type }}</td>
+            <td>
+              <a href="{{ url_for('project_detail', id=p.id) }}" class="text-decoration-none fw-semibold text-dark">
+                {{ p.name }}
+              </a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
