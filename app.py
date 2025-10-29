@@ -347,7 +347,24 @@ def project_detail(id):
 
 
 # ---------- PDF EXPORT ----------
-# ---------- PDF EXPORT ----------
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
+
+# Registrácia slovenského fontu len raz (nie pri každom requeste)
+FONT_NAME = "Helvetica"
+FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+if os.path.exists(FONT_PATH):
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVu', FONT_PATH))
+        addMapping('DejaVu', 0, 0, 'DejaVu')
+        FONT_NAME = "DejaVu"
+        app.logger.info("✅ DejaVu font loaded successfully")
+    except Exception as e:
+        app.logger.warning(f"⚠️ Font registration failed: {e}")
+else:
+    app.logger.warning("⚠️ Font not found, using Helvetica fallback")
+
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
@@ -359,27 +376,18 @@ def export_pdf():
     width, height = A4
     y = height - 80
 
-    # ✅ Registrácia slovenského fontu (vnútri funkcie!)
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    if os.path.exists(font_path):
-        pdfmetrics.registerFont(TTFont('DejaVu', font_path))
-        addMapping('DejaVu', 0, 0, 'DejaVu')
-        font_name = "DejaVu"
-    else:
-        font_name = "Helvetica"
-
-    p.setFont(font_name, 16)
+    # Hlavička
+    p.setFont(FONT_NAME, 16)
     p.drawString(60, y, "HRC & Navate – Výkonnostný report")
-
     y -= 20
-    p.setFont(font_name, 10)
+    p.setFont(FONT_NAME, 10)
     p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     y -= 25
     p.line(50, y, width - 50, y)
     y -= 25
 
     # Hlavička tabuľky
-    p.setFont(font_name, 11)
+    p.setFont(FONT_NAME, 11)
     p.drawString(60, y, "Dátum")
     p.drawString(130, y, "Používateľ")
     p.drawString(220, y, "Projekt")
@@ -390,12 +398,13 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 15
 
+    # Záznamy
     records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
 
     total_hours = 0.0
     total_m2 = 0.0
 
-    p.setFont(font_name, 10)
+    p.setFont(FONT_NAME, 10)
     for r in records:
         proj = Project.query.get(r.project_id)
         user_rec = User.query.get(r.user_id)
@@ -413,16 +422,17 @@ def export_pdf():
 
         p.drawString(490, y, r.note or "")
         y -= 18
+
         if y < 80:
             p.showPage()
-            p.setFont(font_name, 10)
+            p.setFont(FONT_NAME, 10)
             y = height - 80
 
-    # Súhrny riadok
+    # Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
-    p.setFont(font_name, 12)
+    p.setFont(FONT_NAME, 12)
     p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
     p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
