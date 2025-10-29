@@ -6,6 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import io, os, logging
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -327,6 +330,14 @@ def project_detail(id):
 
 # ---------- PDF EXPORT ----------
 @app.route('/export/pdf')
+# Registrácia slovenského fontu
+font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+if os.path.exists(font_path):
+    pdfmetrics.registerFont(TTFont('DejaVu', font_path))
+    addMapping('DejaVu', 0, 0, 'DejaVu')
+    p.setFont("DejaVu", 10)
+else:
+    p.setFont("Helvetica", 10)
 def export_pdf():
     user = session.get('user')
     if not user:
