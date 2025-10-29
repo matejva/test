@@ -6,9 +6,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import io, os, logging
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.fonts import addMapping
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
