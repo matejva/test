@@ -256,12 +256,17 @@ body.dark-mode .btn-glass {
             <label class="form-label">Dátum</label>
             <input type="date" name="date" class="form-control" required>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Typ jednotky</label>
-            <select name="unit_type" class="form-select" required>
-              <option value="hodiny">Hodiny</option>
-              <option value="m2">m²</option>
-            </select>
+         <div class="col-md-3">
+  <label class="form-label d-block mb-2">Typ jednotky</label>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
+    <label class="form-check-label" for="unit_hodiny">Hodiny</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
+    <label class="form-check-label" for="unit_m2">m²</label>
+  </div>
+</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Množstvo</label>
