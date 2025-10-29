@@ -347,29 +347,21 @@ def project_detail(id):
 
 
 # ---------- PDF EXPORT ----------
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.fonts import addMapping
-
-# Registrácia slovenského fontu len raz (nie pri každom requeste)
-FONT_NAME = "Helvetica"
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-if os.path.exists(FONT_PATH):
-    try:
-        pdfmetrics.registerFont(TTFont('DejaVu', FONT_PATH))
-        addMapping('DejaVu', 0, 0, 'DejaVu')
-        FONT_NAME = "DejaVu"
-        app.logger.info("✅ DejaVu font loaded successfully")
-    except Exception as e:
-        app.logger.warning(f"⚠️ Font registration failed: {e}")
-else:
-    app.logger.warning("⚠️ Font not found, using Helvetica fallback")
-
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
+
+    def normalize_text(text):
+        """Nahradí diakritiku, aby PDF s Helvetica vedel text vykresliť."""
+        import unicodedata
+        if not text:
+            return ""
+        return ''.join(
+            c for c in unicodedata.normalize('NFD', text)
+            if unicodedata.category(c) != 'Mn'
+        )
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
@@ -377,41 +369,37 @@ def export_pdf():
     y = height - 80
 
     # Hlavička
-    p.setFont(FONT_NAME, 16)
-    p.drawString(60, y, "HRC & Navate – Výkonnostný report")
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(60, y, normalize_text("HRC & Navate – Výkonnostný report"))
     y -= 20
-    p.setFont(FONT_NAME, 10)
-    p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    p.setFont("Helvetica", 10)
+    p.drawString(60, y, normalize_text(f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}"))
     y -= 25
     p.line(50, y, width - 50, y)
     y -= 25
 
     # Hlavička tabuľky
-    p.setFont(FONT_NAME, 11)
-    p.drawString(60, y, "Dátum")
-    p.drawString(130, y, "Používateľ")
-    p.drawString(220, y, "Projekt")
-    p.drawString(350, y, "Hodiny")
-    p.drawString(420, y, "m²")
-    p.drawString(490, y, "Poznámka")
+    p.setFont("Helvetica-Bold", 11)
+    headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
+    x_positions = [60, 130, 220, 350, 420, 490]
+    for x, text in zip(x_positions, headers):
+        p.drawString(x, y, normalize_text(text))
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 15
 
-    # Záznamy
+    # Dáta
     records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
+    total_hours, total_m2 = 0.0, 0.0
+    p.setFont("Helvetica", 10)
 
-    total_hours = 0.0
-    total_m2 = 0.0
-
-    p.setFont(FONT_NAME, 10)
     for r in records:
         proj = Project.query.get(r.project_id)
-        user_rec = User.query.get(r.user_id)
+        usr = User.query.get(r.user_id)
 
         p.drawString(60, y, str(r.date))
-        p.drawString(130, y, user_rec.name if user_rec else "—")
-        p.drawString(220, y, proj.name if proj else "—")
+        p.drawString(130, y, normalize_text(usr.name if usr else "—"))
+        p.drawString(220, y, normalize_text(proj.name if proj else "—"))
 
         if r.unit_type == "hodiny":
             p.drawRightString(400, y, f"{r.amount:.2f}")
@@ -420,26 +408,31 @@ def export_pdf():
             p.drawRightString(470, y, f"{r.amount:.2f}")
             total_m2 += r.amount
 
-        p.drawString(490, y, r.note or "")
+        p.drawString(490, y, normalize_text(r.note or ""))
         y -= 18
 
         if y < 80:
             p.showPage()
-            p.setFont(FONT_NAME, 10)
+            p.setFont("Helvetica", 10)
             y = height - 80
 
     # Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
-    p.setFont(FONT_NAME, 12)
-    p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(60, y, normalize_text(f"Sucet hodin: {total_hours:.2f}"))
     y -= 18
-    p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
+    p.drawString(60, y, normalize_text(f"Sucet m2: {total_m2:.2f}"))
 
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name='vykonnostny_report.pdf', mimetype='application/pdf')
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name='vykonnostny_report.pdf',
+        mimetype='application/pdf'
+    )
 # ---------- USERS ----------
 @app.route('/users')
 def users_list():
