@@ -149,7 +149,7 @@ def dashboard():
     m2_labels = list(m2_map.keys())
     m2_values = list(m2_map.values())
 
-    # --- 🔹 Súhrn podľa typu jednotky (pre koláčový graf) ---
+   # --- 🔹 Súhrn podľa typu jednotky (pre koláčový graf) ---
     unit_map = {}
     for r in records:
         utype = r.unit_type or "Neznáme"
@@ -158,7 +158,7 @@ def dashboard():
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
 
-        # výpočet výkonu podľa dátumu - rozdelené na hodiny a m2
+    # --- 🔹 Výpočet výkonu podľa dátumu - rozdelené na hodiny a m² ---
     if session_user.get('is_admin'):
         records_all = Record.query.all()
     else:
