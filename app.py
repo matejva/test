@@ -330,66 +330,75 @@ def export_pdf():
     if not user:
         return redirect(url_for('login'))
 
-    selected_user = request.args.get('user_id', type=int)
-    selected_project = request.args.get('project_id', type=int)
-
-    query = Record.query
-    if user.get('is_admin') and selected_user:
-        query = query.filter_by(user_id=selected_user)
-    else:
-        query = query.filter_by(user_id=user['id'])
-
-    if selected_project:
-        query = query.filter_by(project_id=selected_project)
-
-    records = query.order_by(Record.date.desc()).all()
-
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
+    y = height - 80
 
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(50, height - 50, "HRC & Navate – Výkonnostný report")
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(60, y, "HRC & Navate – Výkonnostný report")
+    y -= 20
     p.setFont("Helvetica", 10)
-    p.drawString(50, height - 70, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-    p.line(50, height - 75, width - 50, height - 75)
+    p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    y -= 25
+    p.line(50, y, width - 50, y)
+    y -= 25
 
-    y = height - 100
+    # hlavička tabuľky
     p.setFont("Helvetica-Bold", 11)
     p.drawString(60, y, "Dátum")
-    p.drawString(120, y, "Používateľ")
-    p.drawString(230, y, "Projekt")
-    p.drawString(370, y, "Množstvo")
-    p.drawString(440, y, "Jedn.")
-    p.drawString(480, y, "Poznámka")
+    p.drawString(130, y, "Používateľ")
+    p.drawString(220, y, "Projekt")
+    p.drawString(350, y, "Hodiny")
+    p.drawString(420, y, "m²")
+    p.drawString(490, y, "Poznámka")
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 15
 
-    total = 0
+    records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
+
+    p.setFont("Helvetica", 10)
+    total_hours = 0.0
+    total_m2 = 0.0
+
     for r in records:
-        if y < 50:
-            p.showPage()
-            y = height - 50
-        p.setFont("Helvetica", 10)
-        p.drawString(60, y, r.date)
-        p.drawString(120, y, r.user.name if r.user else "-")
-        p.drawString(230, y, r.project.name if r.project else "-")
-        p.drawString(370, y, str(r.amount))
-        p.drawString(440, y, r.unit_type or "")
-        p.drawString(480, y, (r.note or "")[:30])
-        total += r.amount
+        proj = Project.query.get(r.project_id)
+        user_rec = User.query.get(r.user_id)
+
+        p.drawString(60, y, str(r.date))
+        p.drawString(130, y, user_rec.name if user_rec else "—")
+        p.drawString(220, y, proj.name if proj else "—")
+
+        # rozdelenie podľa jednotky
+        if r.unit_type == "hodiny":
+            p.drawRightString(400, y, f"{r.amount:.2f}")
+            total_hours += r.amount
+        else:
+            p.drawRightString(470, y, f"{r.amount:.2f}")
+            total_m2 += r.amount
+
+        p.drawString(490, y, r.note or "")
         y -= 18
 
+        # nová strana ak dôjde miesto
+        if y < 80:
+            p.showPage()
+            y = height - 80
+            p.setFont("Helvetica", 10)
+
+    # súčty
     y -= 10
     p.line(50, y, width - 50, y)
-    p.setFont("Helvetica-Bold", 11)
-    p.drawString(60, y - 20, f"Celkový súčet: {total:.2f}")
+    y -= 20
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
+    y -= 18
+    p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
 
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name="vykon_report.pdf", mimetype="application/pdf")
-
+    return send_file(buffer, as_attachment=True, download_name='vykonnostny_report.pdf', mimetype='application/pdf')
 # ---------- USERS ----------
 @app.route('/users')
 def users_list():
