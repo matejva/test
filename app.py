@@ -347,6 +347,7 @@ def project_detail(id):
 
 
 # ---------- PDF EXPORT ----------
+# ---------- PDF EXPORT ----------
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
@@ -358,12 +359,7 @@ def export_pdf():
     width, height = A4
     y = height - 80
 
-    # ✅ Registrácia slovenského fontu
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.lib.fonts import addMapping
-    import os
-
+    # ✅ Registrácia slovenského fontu (vnútri funkcie!)
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     if os.path.exists(font_path):
         pdfmetrics.registerFont(TTFont('DejaVu', font_path))
@@ -372,7 +368,6 @@ def export_pdf():
     else:
         font_name = "Helvetica"
 
-    # ✅ Použitie slovenského fontu
     p.setFont(font_name, 16)
     p.drawString(60, y, "HRC & Navate – Výkonnostný report")
 
@@ -423,7 +418,7 @@ def export_pdf():
             p.setFont(font_name, 10)
             y = height - 80
 
-    # Súčty
+    # Súhrny riadok
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
