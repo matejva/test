@@ -1,84 +1,169 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container-fluid">
 
-  <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold mb-0">
-      <i class="fa fa-briefcase me-2 text-primary"></i> Projekty
-    </h3>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
-      <i class="fa fa-arrow-left me-1"></i> Späť na dashboard
-    </a>
-  </div>
+<style>
+:root {
+  --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #f9fbff 100%);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.25);
+  --text-color: #1e293b;
+  --accent: #00bfa6;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
 
-  <!-- FORMULÁR NA PRIDANIE PROJEKTU -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
-      <h5 class="fw-semibold mb-3">
-        <i class="fa fa-plus-circle me-2 text-success"></i> Pridať nový projekt
-      </h5>
-      <form method="POST" action="{{ url_for('add_project') }}" class="row g-3 align-items-end">
-        <div class="col-md-9">
-          <label class="form-label fw-semibold">Názov projektu</label>
-          <input type="text" name="name" class="form-control" placeholder="Zadaj názov projektu" required>
-        </div>
-        <div class="col-md-3">
-          <button type="submit" class="btn btn-primary w-100 mt-2 mt-md-0">
-            <i class="fa fa-check me-1"></i> Pridať
-          </button>
-        </div>
-      </form>
+body.dark-mode {
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --glass-bg: rgba(30, 41, 59, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-color: #f1f5f9;
+  --accent: #4fd1c5;
+  --shadow: rgba(0, 0, 0, 0.4);
+}
+
+body {
+  background: var(--bg-gradient);
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+  transition: background 0.5s ease, color 0.3s ease;
+}
+
+.glass-card {
+  backdrop-filter: blur(16px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover { transform: translateY(-2px); }
+
+/* 🌗 Prepínač témy */
+.theme-switch {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  border-radius: 50px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: all 0.4s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+}
+
+.theme-switch i {
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  color: var(--text-color);
+}
+
+.theme-ball {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
+  border-radius: 50%;
+  transition: all 0.4s ease;
+  box-shadow: 0 0 10px var(--accent);
+}
+body.dark-mode .theme-ball { left: 31px; }
+
+/* 🧊 Sklenené tlačidlá */
+.btn-glass {
+  backdrop-filter: blur(10px);
+  background: rgba(0, 191, 166, 0.25);
+  border: 1px solid rgba(0, 191, 166, 0.4);
+  color: #006a58;
+}
+body.dark-mode .btn-glass {
+  background: rgba(79, 209, 197, 0.25);
+  border-color: rgba(79, 209, 197, 0.4);
+  color: #4fd1c5;
+}
+.btn-glass:hover { background: rgba(0, 191, 166, 0.4); }
+</style>
+
+<div class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h2 class="fw-bold mb-0">
+      <i class="fa fa-building text-primary me-2"></i> Projekty
+    </h2>
+
+    <!-- 🌙 prepínač témy -->
+    <div id="themeToggle" class="theme-switch" title="Prepnúť tému">
+      <i class="fa fa-sun"></i>
+      <i class="fa fa-moon"></i>
+      <div class="theme-ball"></div>
     </div>
   </div>
 
-  <!-- ZOZNAM PROJEKTOV -->
-  <div class="card border-0 shadow-sm">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-semibold mb-0">
-          <i class="fa fa-folder-open me-2 text-warning"></i> Zoznam projektov
-        </h5>
-        <span class="badge bg-primary rounded-pill">{{ projects|length }} projektov</span>
+  <!-- 🧩 Karta s obsahom -->
+  <div class="glass-card p-4">
+    {% if is_admin %}
+    <h5 class="fw-semibold mb-3"><i class="fa fa-plus-circle text-success me-2"></i> Pridať nový projekt</h5>
+    <form method="POST" action="{{ url_for('add_project') }}" class="row g-2 mb-4">
+      <div class="col-md-6">
+        <input type="text" name="name" class="form-control" placeholder="Názov projektu" required>
       </div>
+      <div class="col-md-3">
+        <select name="unit_type" class="form-select">
+          <option value="hodiny">Hodiny</option>
+          <option value="m2">m²</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-grid">
+        <button type="submit" class="btn btn-primary">
+          <i class="fa fa-plus me-1"></i> Pridať
+        </button>
+      </div>
+    </form>
+    <hr>
+    {% endif %}
 
-      {% if projects %}
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th style="width: 60%;">Názov projektu</th>
-              <th style="width: 40%;" class="text-end">Akcie</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in projects %}
-            <tr>
-              <td class="fw-semibold text-dark">{{ p.name }}</td>
-              <td class="text-end">
-                <a href="{{ url_for('project_detail', id=p.id) }}" class="btn btn-outline-primary btn-sm me-2">
-                  <i class="fa fa-eye me-1"></i> Detail
-                </a>
-                {% if user.is_admin %}
-                <form action="{{ url_for('delete_project', id=p.id) }}" method="POST" class="d-inline">
-                  <button type="submit" class="btn btn-outline-danger btn-sm"
-                          onclick="return confirm('Naozaj chceš odstrániť tento projekt?')">
-                    <i class="fa fa-trash"></i>
-                  </button>
-                </form>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-        <div class="alert alert-info mt-3 mb-0">
-          <i class="fa fa-info-circle me-2"></i> Zatiaľ neexistujú žiadne projekty.
-        </div>
-      {% endif %}
+    <h5 class="fw-semibold mb-3">
+      <i class="fa fa-folder-open text-info me-2"></i> Zoznam projektov
+    </h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Názov projektu</th>
+            <th>Typ jednotky</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td>{{ p.name }}</td>
+            <td>{{ p.unit_type }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = document.getElementById("themeToggle");
+  const body = document.body;
+  const saved = localStorage.getItem("theme");
+  if (saved === "dark") body.classList.add("dark-mode");
+
+  toggle.addEventListener("click", () => {
+    body.classList.toggle("dark-mode");
+    localStorage.setItem("theme", body.classList.contains("dark-mode") ? "dark" : "light");
+  });
+});
+</script>
+
 {% endblock %}
