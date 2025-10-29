@@ -158,8 +158,8 @@ def dashboard():
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
 
-    # výpočet výkonu podľa dátumu - rozdelené na hodiny a m2
-      if session_user.get('is_admin'):
+        # výpočet výkonu podľa dátumu - rozdelené na hodiny a m2
+    if session_user.get('is_admin'):
         records_all = Record.query.all()
     else:
         records_all = Record.query.filter_by(user_id=session_user['id']).all()
@@ -182,6 +182,11 @@ def dashboard():
 
     chart_labels_m2 = sorted(date_data_m2.keys())
     chart_values_m2 = [date_data_m2[k] for k in chart_labels_m2]
+
+
+
+
+
     # --- 🔹 Render ---
     return render_template(
         'dashboard.html',
