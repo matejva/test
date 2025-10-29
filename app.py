@@ -358,7 +358,7 @@ def export_pdf():
     width, height = A4
     y = height - 80
 
-    # ✅ Registrácia slovenského fontu (TU to má byť)
+    # ✅ Registrácia slovenského fontu
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.lib.fonts import addMapping
@@ -368,22 +368,23 @@ def export_pdf():
     if os.path.exists(font_path):
         pdfmetrics.registerFont(TTFont('DejaVu', font_path))
         addMapping('DejaVu', 0, 0, 'DejaVu')
-        p.setFont("DejaVu", 10)
+        font_name = "DejaVu"
     else:
-        p.setFont("Helvetica", 10)
+        font_name = "Helvetica"
 
-    # Nadpis a hlavička
-    p.setFont("Helvetica-Bold", 16)
+    # ✅ Použitie slovenského fontu
+    p.setFont(font_name, 16)
     p.drawString(60, y, "HRC & Navate – Výkonnostný report")
+
     y -= 20
-    p.setFont("Helvetica", 10)
+    p.setFont(font_name, 10)
     p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     y -= 25
     p.line(50, y, width - 50, y)
     y -= 25
 
     # Hlavička tabuľky
-    p.setFont("Helvetica-Bold", 11)
+    p.setFont(font_name, 11)
     p.drawString(60, y, "Dátum")
     p.drawString(130, y, "Používateľ")
     p.drawString(220, y, "Projekt")
@@ -394,11 +395,12 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 15
 
-    # Dáta
     records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
-    total_hours = total_m2 = 0.0
 
-    p.setFont("Helvetica", 10)
+    total_hours = 0.0
+    total_m2 = 0.0
+
+    p.setFont(font_name, 10)
     for r in records:
         proj = Project.query.get(r.project_id)
         user_rec = User.query.get(r.user_id)
@@ -410,7 +412,7 @@ def export_pdf():
         if r.unit_type == "hodiny":
             p.drawRightString(400, y, f"{r.amount:.2f}")
             total_hours += r.amount
-        else:
+        elif r.unit_type == "m2":
             p.drawRightString(470, y, f"{r.amount:.2f}")
             total_m2 += r.amount
 
@@ -418,23 +420,21 @@ def export_pdf():
         y -= 18
         if y < 80:
             p.showPage()
+            p.setFont(font_name, 10)
             y = height - 80
-            p.setFont("Helvetica", 10)
 
     # Súčty
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
-    p.setFont("Helvetica-Bold", 12)
+    p.setFont(font_name, 12)
     p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
     p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
 
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True,
-                     download_name='vykonnostny_report.pdf',
-                     mimetype='application/pdf')
+    return send_file(buffer, as_attachment=True, download_name='vykonnostny_report.pdf', mimetype='application/pdf')
 # ---------- USERS ----------
 @app.route('/users')
 def users_list():
