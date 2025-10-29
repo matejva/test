@@ -189,25 +189,29 @@ def dashboard():
 
     # --- 🔹 Render ---
     return render_template(
-        'dashboard.html',
-        user=session_user,
-        users=users,
-        projects=projects,
-        records=records,
-        total=total,
-        project_count=project_count,
-        chart_labels=chart_labels,
-        chart_values=chart_values,
-        hours_labels=hours_labels,
-        hours_values=hours_values,
-        m2_labels=m2_labels,
-        m2_values=m2_values,
-        unit_labels=unit_labels,
-        unit_values=unit_values,
-        selected_user=selected_user,
-        selected_project=selected_project,
-        unit_type_filter=unit_type_filter
-    )
+    'dashboard.html',
+    user=session_user,
+    users=users,
+    projects=projects,
+    records=records,
+    total=total,
+    project_count=project_count,
+    chart_labels=chart_labels,
+    chart_values=chart_values,
+    hours_labels=hours_labels,
+    hours_values=hours_values,
+    m2_labels=m2_labels,
+    m2_values=m2_values,
+    unit_labels=unit_labels,
+    unit_values=unit_values,
+    chart_labels_hours=chart_labels_hours,
+    chart_values_hours=chart_values_hours,
+    chart_labels_m2=chart_labels_m2,
+    chart_values_m2=chart_values_m2,
+    selected_user=selected_user,
+    selected_project=selected_project,
+    unit_type_filter=unit_type_filter
+)
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
