@@ -6,6 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import io, os, logging
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -396,24 +398,36 @@ def export_pdf():
     if not user:
         return redirect(url_for('login'))
 
+    # 🟢 Registrácia vlastných fontov (funguje aj na Render)
+    font_dir = os.path.join(app.root_path, "static", "fonts")
+    try:
+        pdfmetrics.registerFont(TTFont("FreeSans", os.path.join(font_dir, "FreeSans.otf")))
+        pdfmetrics.registerFont(TTFont("FreeSans-Bold", os.path.join(font_dir, "FreeSansBold.otf")))
+        pdfmetrics.registerFont(TTFont("FreeSans-Oblique", os.path.join(font_dir, "FreeSansOblique.otf")))
+        pdfmetrics.registerFont(TTFont("FreeSans-BoldOblique", os.path.join(font_dir, "FreeSansBoldOblique.otf")))
+        font_name = "FreeSans"
+    except Exception as e:
+        app.logger.error(f"⚠️ Nepodarilo sa načítať fonty: {e}")
+        font_name = "Helvetica"  # fallback ak by niečo chýbalo
+
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 80
 
-    # Hlavička
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(60, y, "HRC & Navate - Vykonnostny report")
+    # 🔹 Hlavička
+    p.setFont(font_name + "-Bold", 16)
+    p.drawString(60, y, "HRC & Navate – Výkonnostný report")
     y -= 20
-    p.setFont("Helvetica", 10)
-    p.drawString(60, y, f"Generovane: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    p.setFont(font_name, 10)
+    p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     y -= 25
     p.line(50, y, width - 50, y)
     y -= 25
 
-    # Hlavička tabuľky
-    p.setFont("Helvetica-Bold", 11)
-    headers = ["Datum", "Pouzivatel", "Projekt", "Hodiny", "m2", "Poznamka"]
+    # 🔹 Hlavička tabuľky
+    p.setFont(font_name + "-Bold", 11)
+    headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
     x_positions = [60, 130, 220, 350, 420, 490]
     for x, text in zip(x_positions, headers):
         p.drawString(x, y, text)
@@ -421,10 +435,10 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 15
 
-    # Dáta
+    # 🔹 Dáta
     records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
     total_hours, total_m2 = 0.0, 0.0
-    p.setFont("Helvetica", 10)
+    p.setFont(font_name, 10)
 
     for r in records:
         proj = Project.query.get(r.project_id)
@@ -443,20 +457,19 @@ def export_pdf():
 
         p.drawString(490, y, r.note or "")
         y -= 18
-
         if y < 80:
             p.showPage()
-            p.setFont("Helvetica", 10)
+            p.setFont(font_name, 10)
             y = height - 80
 
-    # Súhrn
+    # 🔹 Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(60, y, f"Sucet hodin: {total_hours:.2f}")
+    p.setFont(font_name + "-Bold", 12)
+    p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
-    p.drawString(60, y, f"Sucet m2: {total_m2:.2f}")
+    p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
 
     p.save()
     buffer.seek(0)
@@ -464,8 +477,8 @@ def export_pdf():
     return send_file(
         buffer,
         as_attachment=True,
-        download_name='vykonnostny_report.pdf',
-        mimetype='application/pdf'
+        download_name="vykonnostny_report.pdf",
+        mimetype="application/pdf"
     )
 
 
