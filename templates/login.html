@@ -1,172 +1,111 @@
-{% extends 'base_login.html' %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prihlásenie | HRC & Navate</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #f9fbff);
+      transition: background 0.4s ease;
+    }
 
-<style>
-:root {
-  --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #f9fbff 100%);
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.25);
-  --text-color: #1e293b;
-  --accent: #00bfa6;
-  --shadow: rgba(0, 0, 0, 0.1);
-}
+    .login-container {
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      animation: fadeIn 0.8s ease-in-out;
+    }
 
-body.dark-mode {
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  --glass-bg: rgba(30, 41, 59, 0.5);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --text-color: #f1f5f9;
-  --accent: #4fd1c5;
-  --shadow: rgba(0, 0, 0, 0.4);
-}
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-body {
-  min-height: 100vh;
-  background: var(--bg-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', sans-serif;
-  color: var(--text-color);
-  transition: background 0.5s ease, color 0.3s ease;
-  overflow: hidden;
-}
+    .login-container h2 {
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 1rem;
+    }
 
-/* 🌙 Glassmorphic login card */
-.glass-card {
-  backdrop-filter: blur(20px);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  padding: 3rem;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 8px 32px var(--shadow);
-  transition: all 0.3s ease;
-  animation: fadeIn 0.8s ease;
-}
+    .form-control {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      color: #1e293b;
+    }
 
-.glass-card:hover {
-  transform: translateY(-3px);
-}
+    .form-control:focus {
+      box-shadow: 0 0 8px rgba(0, 191, 166, 0.4);
+      border-color: #00bfa6;
+    }
 
-h3 {
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: var(--accent);
-}
+    .btn-login {
+      width: 100%;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #00bfa6, #009688);
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 0.75rem;
+      transition: all 0.3s ease;
+    }
 
-.btn-glass {
-  backdrop-filter: blur(10px);
-  background: rgba(0, 191, 166, 0.25);
-  border: 1px solid rgba(0, 191, 166, 0.4);
-  color: #006a58;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
+    .btn-login:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 191, 166, 0.4);
+    }
 
-.btn-glass:hover {
-  background: rgba(0, 191, 166, 0.4);
-}
+    .text-danger {
+      color: #e63946 !important;
+      font-size: 0.9rem;
+    }
 
-body.dark-mode .btn-glass {
-  background: rgba(79, 209, 197, 0.25);
-  border-color: rgba(79, 209, 197, 0.4);
-  color: #4fd1c5;
-}
+    .logo {
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #00bfa6;
+      margin-bottom: 1.5rem;
+    }
 
-/* 🌗 Theme toggle */
-.theme-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 30px;
-  width: 60px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 6px;
-  cursor: pointer;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
-}
+  </style>
+</head>
+<body>
 
-.theme-toggle i {
-  color: var(--text-color);
-  font-size: 1.2rem;
-}
+  <div class="login-container">
+    <div class="logo"><i class="fa fa-leaf me-2"></i>HRC & Navate</div>
+    <h2>Prihlásenie</h2>
+    {% if error %}
+      <p class="text-danger mb-3">{{ error }}</p>
+    {% endif %}
+    <form method="POST" action="{{ url_for('do_login') }}">
+      <div class="mb-3 text-start">
+        <label for="email" class="form-label">E-mail</label>
+        <input type="email" name="email" id="email" class="form-control" placeholder="zadaj e-mail" required>
+      </div>
+      <div class="mb-4 text-start">
+        <label for="password" class="form-label">Heslo</label>
+        <input type="password" name="password" id="password" class="form-control" placeholder="zadaj heslo" required>
+      </div>
+      <button type="submit" class="btn btn-login">Prihlásiť sa</button>
+    </form>
+  </div>
 
-.theme-ball {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 26px;
-  height: 26px;
-  background: var(--accent);
-  border-radius: 50%;
-  transition: all 0.4s ease;
-  box-shadow: 0 0 10px var(--accent);
-}
-
-body.dark-mode .theme-ball {
-  left: 31px;
-}
-
-/* ✨ Animácie */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>
-
-<!-- 🌗 Prepínač témy -->
-<div id="themeToggle" class="theme-toggle">
-  <i class="fa fa-sun"></i>
-  <i class="fa fa-moon"></i>
-  <div class="theme-ball"></div>
-</div>
-
-<!-- 💎 Login card -->
-<div class="glass-card">
-  <h3><i class="fa fa-lock me-2"></i> Prihlásenie</h3>
-
-  {% if error %}
-    <div class="alert alert-danger text-center">{{ error }}</div>
-  {% endif %}
-
-  <form method="POST" action="{{ url_for('do_login') }}">
-    <div class="mb-3">
-      <label class="form-label">E-mail</label>
-      <input type="email" name="email" class="form-control" placeholder="Zadaj e-mail" required>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">Heslo</label>
-      <input type="password" name="password" class="form-control" placeholder="Zadaj heslo" required>
-    </div>
-
-    <button type="submit" class="btn btn-glass w-100 mt-2">
-      <i class="fa fa-sign-in-alt me-1"></i> Prihlásiť sa
-    </button>
-  </form>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const toggle = document.getElementById("themeToggle");
-  const body = document.body;
-  const saved = localStorage.getItem("theme");
-  if (saved === "dark") body.classList.add("dark-mode");
-
-  toggle.addEventListener("click", () => {
-    body.classList.toggle("dark-mode");
-    localStorage.setItem("theme", body.classList.contains("dark-mode") ? "dark" : "light");
-  });
-});
-</script>
-
-{% endblock %}
+</body>
+</html>
