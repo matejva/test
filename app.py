@@ -390,43 +390,44 @@ def project_detail(id):
 
 
 # ---------- PDF EXPORT ----------
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
+
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
     if not user:
         return redirect(url_for('login'))
 
-    def normalize_text(text):
-        """Nahradí diakritiku, aby PDF s Helvetica vedel text vykresliť."""
-        import unicodedata
-        if not text:
-            return ""
-        return ''.join(
-            c for c in unicodedata.normalize('NFD', text)
-            if unicodedata.category(c) != 'Mn'
-        )
+    # 🔹 Registrácia fontu s diakritikou
+    font_path = os.path.join(app.root_path, 'static', 'fonts', 'DejaVuSans.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+    addMapping('DejaVuSans', 0, 0, 'DejaVuSans')
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
+    p.setFont("DejaVuSans", 12)
+
     width, height = A4
     y = height - 80
 
     # Hlavička
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(60, y, normalize_text("HRC & Navate – Výkonnostný report"))
+    p.setFont("DejaVuSans", 16)
+    p.drawString(60, y, "HRC & Navate – Výkonnostný report")
     y -= 20
-    p.setFont("Helvetica", 10)
-    p.drawString(60, y, normalize_text(f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}"))
+    p.setFont("DejaVuSans", 10)
+    p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     y -= 25
     p.line(50, y, width - 50, y)
     y -= 25
 
     # Hlavička tabuľky
-    p.setFont("Helvetica-Bold", 11)
+    p.setFont("DejaVuSans", 11)
     headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
     x_positions = [60, 130, 220, 350, 420, 490]
     for x, text in zip(x_positions, headers):
-        p.drawString(x, y, normalize_text(text))
+        p.drawString(x, y, text)
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 15
@@ -434,39 +435,35 @@ def export_pdf():
     # Dáta
     records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
     total_hours, total_m2 = 0.0, 0.0
-    p.setFont("Helvetica", 10)
+    p.setFont("DejaVuSans", 10)
 
     for r in records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
-
         p.drawString(60, y, str(r.date))
-        p.drawString(130, y, normalize_text(usr.name if usr else "—"))
-        p.drawString(220, y, normalize_text(proj.name if proj else "—"))
-
+        p.drawString(130, y, usr.name if usr else "—")
+        p.drawString(220, y, proj.name if proj else "—")
         if r.unit_type == "hodiny":
             p.drawRightString(400, y, f"{r.amount:.2f}")
             total_hours += r.amount
         elif r.unit_type == "m2":
             p.drawRightString(470, y, f"{r.amount:.2f}")
             total_m2 += r.amount
-
-        p.drawString(490, y, normalize_text(r.note or ""))
+        p.drawString(490, y, r.note or "")
         y -= 18
 
         if y < 80:
             p.showPage()
-            p.setFont("Helvetica", 10)
+            p.setFont("DejaVuSans", 10)
             y = height - 80
 
-    # Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(60, y, normalize_text(f"Sucet hodin: {total_hours:.2f}"))
+    p.setFont("DejaVuSans", 12)
+    p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
-    p.drawString(60, y, normalize_text(f"Sucet m2: {total_m2:.2f}"))
+    p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
 
     p.save()
     buffer.seek(0)
