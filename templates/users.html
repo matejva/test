@@ -1,5 +1,32 @@
+
 {% extends 'base.html' %}
 {% block content %}
+<style>
+/* 💡 Fix proti preblikávaniu */
+.modal,
+.modal-dialog,
+.modal-content,
+.modal-backdrop {
+  transition: none !important;
+  animation: none !important;
+}
+.modal-backdrop.show {
+  opacity: 0.3 !important; /* mierne stmavenie bez animácie */
+}
+body.modal-open {
+  overflow: hidden !important;
+  padding-right: 0 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  transform: none !important;
+}
+.card.user-card {
+  transition: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+</style>
+
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="fw-bold mb-0">Používatelia</h3>
@@ -14,7 +41,7 @@
   <div class="row">
     {% for u in users %}
     <div class="col-md-4 col-lg-3 mb-4">
-      <div class="card user-card shadow-sm text-center">
+      <div class="card user-card shadow-sm text-center" style="cursor: default;">
         <div class="card-body">
           <div class="avatar-circle bg-gradient mb-3">
             <span class="initials">{{ u.name[:2]|upper }}</span>
@@ -29,16 +56,16 @@
           {% endif %}
 
           {% if user.is_admin or user.id == u.id %}
-          <!-- Tlačidlo na otvorenie modalu -->
           <button type="button" class="btn btn-warning btn-sm mt-3"
                   data-bs-toggle="modal"
                   data-bs-target="#changePassModal{{ u.id }}">
             <i class="fa fa-key me-1"></i> Zmeniť heslo
           </button>
 
-          <!-- Modal -->
-          <div class="modal fade" id="changePassModal{{ u.id }}" tabindex="-1"
-               aria-labelledby="changePassLabel{{ u.id }}" aria-hidden="true" data-bs-backdrop="static">
+          <!-- Modal bez fade -->
+          <div class="modal" id="changePassModal{{ u.id }}" tabindex="-1"
+               aria-labelledby="changePassLabel{{ u.id }}" aria-hidden="true"
+               data-bs-backdrop="static">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
                 <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}">
