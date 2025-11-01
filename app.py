@@ -73,12 +73,10 @@ def do_login():
     email = request.form['email']
     password = request.form['password']
     user = User.query.filter_by(email=email).first()
-
     if user and check_password_hash(user.password, password):
         session['user'] = {'id': user.id, 'name': user.name, 'is_admin': user.is_admin}
         return redirect(url_for('dashboard'))
-    else:
-        return render_template('login.html', error="Nesprávny e-mail alebo heslo")
+    return render_template('login.html', error="Zlý e-mail alebo heslo")
 
 
 @app.route('/logout')
