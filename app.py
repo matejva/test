@@ -480,9 +480,10 @@ def export_pdf():
 @app.route('/users')
 def users_list():
     user = session.get('user')
-    if not user or not user.get('is_admin'):
+    if not user:
         return redirect(url_for('login'))
 
+    # Admin vidí všetkých, bežný používateľ len seba + zoznam
     all_users = User.query.order_by(User.name).all()
     return render_template('users.html', users=all_users, user=user)
 
