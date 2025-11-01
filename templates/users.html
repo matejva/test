@@ -28,22 +28,22 @@
           {% endif %}
 
           {% if user.is_admin %}
-          <!-- 🟢 Zmeniť heslo (len pre admina) -->
+          <!-- 🟢 Tlačidlo Zmeniť heslo -->
           <button class="btn btn-outline-warning btn-sm mt-3" data-bs-toggle="modal"
                   data-bs-target="#changePassModal{{ u.id }}">
             <i class="fa fa-key me-1"></i> Zmeniť heslo
           </button>
 
-          <!-- Modal -->
+          <!-- Modal pre zmenu hesla -->
           <div class="modal fade" id="changePassModal{{ u.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
               <div class="modal-content glass-card">
-                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}">
+                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}" onsubmit="disableSubmit(this)">
                   <div class="modal-header border-0">
                     <h5 class="modal-title">
                       <i class="fa fa-key me-2 text-warning"></i> Zmena hesla
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                   </div>
                   <div class="modal-body">
                     <label class="form-label">Nové heslo pre <strong>{{ u.name }}</strong></label>
@@ -51,7 +51,7 @@
                       <input type="password" name="new_password" class="form-control" required minlength="4"
                              placeholder="Zadaj nové heslo" id="passwordInput{{ u.id }}">
                       <button class="btn btn-outline-secondary" type="button"
-                              onclick="togglePassword('passwordInput{{ u.id }}')">
+                              onclick="togglePassword('passwordInput{{ u.id }}', this)">
                         <i class="fa fa-eye"></i>
                       </button>
                     </div>
@@ -75,11 +75,11 @@
   {% endif %}
 </div>
 
-<!-- 👁️ Skript na zobrazenie/skrývanie hesla -->
+<!-- 👁️ JS – ovládanie zobrazenia hesla + ochrana proti preblikávaniu -->
 <script>
-function togglePassword(id) {
+function togglePassword(id, btn) {
   const input = document.getElementById(id);
-  const icon = event.target.closest('button').querySelector('i');
+  const icon = btn.querySelector('i');
   if (input.type === "password") {
     input.type = "text";
     icon.classList.replace('fa-eye', 'fa-eye-slash');
@@ -87,6 +87,12 @@ function togglePassword(id) {
     input.type = "password";
     icon.classList.replace('fa-eye-slash', 'fa-eye');
   }
+}
+
+function disableSubmit(form) {
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Ukladám...';
 }
 </script>
 {% endblock %}
