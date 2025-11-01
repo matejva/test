@@ -483,8 +483,13 @@ def users_list():
     if not user:
         return redirect(url_for('login'))
 
-    # Admin vidí všetkých, bežný používateľ len seba + zoznam
-    all_users = User.query.order_by(User.name).all()
+    # Ak je admin → vidí všetkých
+    if user.get('is_admin'):
+        all_users = User.query.order_by(User.name).all()
+    # Ak nie je admin → vidí len seba
+    else:
+        all_users = [User.query.get(user['id'])]
+
     return render_template('users.html', users=all_users, user=user)
 
 
