@@ -83,6 +83,25 @@ def do_login():
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
+    
+# ---------- Change Password ----------
+@app.route('/change_password/<int:user_id>', methods=['POST'])
+def change_password(user_id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash("Nemáš oprávnenie meniť heslá.", "danger")
+        return redirect(url_for('users_list'))
+
+    new_password = request.form.get('new_password')
+    if not new_password:
+        flash("Zadaj nové heslo.", "warning")
+        return redirect(url_for('users_list'))
+
+    target = User.query.get_or_404(user_id)
+    target.password = generate_password_hash(new_password)
+    db.session.commit()
+    flash(f"Heslo používateľa {target.name} bolo zmenené.", "success")
+    return redirect(url_for('users_list'))
 
 
 # ---------- DASHBOARD ----------
