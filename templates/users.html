@@ -14,13 +14,14 @@
   <div class="row">
     {% for u in users %}
     <div class="col-md-4 col-lg-3 mb-4">
-      <div class="card user-card shadow-sm text-center" style="transition: none;">
+      <div class="card user-card shadow-sm text-center">
         <div class="card-body">
           <div class="avatar-circle bg-gradient mb-3">
             <span class="initials">{{ u.name[:2]|upper }}</span>
           </div>
           <h5 class="fw-bold mb-1">{{ u.name }}</h5>
           <p class="text-muted mb-2 small">{{ u.email or 'Bez e-mailu' }}</p>
+
           {% if u.is_admin %}
             <span class="badge bg-success px-3 py-2">Admin</span>
           {% else %}
@@ -28,7 +29,7 @@
           {% endif %}
 
           {% if user.is_admin or user.id == u.id %}
-          <!-- 🟡 Zmeniť heslo -->
+          <!-- Tlačidlo na otvorenie modalu -->
           <button type="button" class="btn btn-warning btn-sm mt-3"
                   data-bs-toggle="modal"
                   data-bs-target="#changePassModal{{ u.id }}">
@@ -36,10 +37,11 @@
           </button>
 
           <!-- Modal -->
-          <div class="modal fade" id="changePassModal{{ u.id }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-            <div class="modal-dialog">
-              <div class="modal-content glass-card" style="transition: none;">
-                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}" onsubmit="return disableSubmit(this)">
+          <div class="modal fade" id="changePassModal{{ u.id }}" tabindex="-1"
+               aria-labelledby="changePassLabel{{ u.id }}" aria-hidden="true" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}">
                   <div class="modal-header border-0">
                     <h5 class="modal-title">
                       <i class="fa fa-key me-2 text-warning"></i>
@@ -93,7 +95,6 @@
   {% endif %}
 </div>
 
-<!-- Skripty -->
 <script>
 function togglePassword(id, btn) {
   const input = document.getElementById(id);
@@ -106,22 +107,5 @@ function togglePassword(id, btn) {
     icon.classList.replace('fa-eye-slash', 'fa-eye');
   }
 }
-
-function disableSubmit(form) {
-  event.preventDefault();
-  const btn = form.querySelector('button[type="submit"]');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Ukladám...';
-  setTimeout(() => form.submit(), 200);
-  return false;
-}
-
-// Vypne hover animácie, ktoré spôsobujú prebliknutie
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll('.card.user-card').forEach(card => {
-    card.style.transition = 'none';
-    card.addEventListener('mouseover', e => e.stopPropagation());
-  });
-});
 </script>
 {% endblock %}
