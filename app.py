@@ -88,19 +88,31 @@ def logout():
 @app.route('/change_password/<int:user_id>', methods=['POST'])
 def change_password(user_id):
     user = session.get('user')
-    if not user or not user.get('is_admin'):
-        flash("Nemáš oprávnenie meniť heslá.", "danger")
+    if not user:
+        flash("Musíš byť prihlásený.", "danger")
+        return redirect(url_for('login'))
+
+    # iba admin alebo majiteľ účtu
+    if not (user.get('is_admin') or user['id'] == user_id):
+        flash("Nemáš oprávnenie meniť toto heslo.", "danger")
         return redirect(url_for('users_list'))
 
     new_password = request.form.get('new_password')
-    if not new_password:
-        flash("Zadaj nové heslo.", "warning")
+    confirm = request.form.get('confirm_password')
+
+    if not new_password or not confirm:
+        flash("Zadaj heslo a potvrdenie.", "warning")
+        return redirect(url_for('users_list'))
+
+    if new_password != confirm:
+        flash("Heslá sa nezhodujú.", "danger")
         return redirect(url_for('users_list'))
 
     target = User.query.get_or_404(user_id)
     target.password = generate_password_hash(new_password)
     db.session.commit()
-    flash(f"Heslo používateľa {target.name} bolo zmenené.", "success")
+
+    flash("Heslo bolo úspešne zmenené.", "success")
     return redirect(url_for('users_list'))
 
 
