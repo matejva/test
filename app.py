@@ -398,24 +398,22 @@ def export_pdf():
     if not user:
         return redirect(url_for('login'))
 
-    # 🟢 Registrácia vlastných fontov (funguje aj na Render)
+    # 🟢 Registrácia TTF fontov – funguje s diakritikou
     font_dir = os.path.join(app.root_path, "static", "fonts")
     try:
-        pdfmetrics.registerFont(TTFont("FreeSans", os.path.join(font_dir, "FreeSans.otf")))
-        pdfmetrics.registerFont(TTFont("FreeSans-Bold", os.path.join(font_dir, "FreeSansBold.otf")))
-        pdfmetrics.registerFont(TTFont("FreeSans-Oblique", os.path.join(font_dir, "FreeSansOblique.otf")))
-        pdfmetrics.registerFont(TTFont("FreeSans-BoldOblique", os.path.join(font_dir, "FreeSansBoldOblique.otf")))
+        pdfmetrics.registerFont(TTFont("FreeSans", os.path.join(font_dir, "FreeSans.ttf")))
+        pdfmetrics.registerFont(TTFont("FreeSans-Bold", os.path.join(font_dir, "FreeSansBold.ttf")))
         font_name = "FreeSans"
     except Exception as e:
         app.logger.error(f"⚠️ Nepodarilo sa načítať fonty: {e}")
-        font_name = "Helvetica"  # fallback ak by niečo chýbalo
+        font_name = "Helvetica"
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 80
 
-    # 🔹 Hlavička
+    # Hlavička
     p.setFont(font_name + "-Bold", 16)
     p.drawString(60, y, "HRC & Navate – Výkonnostný report")
     y -= 20
@@ -425,7 +423,7 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 25
 
-    # 🔹 Hlavička tabuľky
+    # Hlavička tabuľky
     p.setFont(font_name + "-Bold", 11)
     headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
     x_positions = [60, 130, 220, 350, 420, 490]
@@ -435,7 +433,7 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 15
 
-    # 🔹 Dáta
+    # Dáta
     records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
     total_hours, total_m2 = 0.0, 0.0
     p.setFont(font_name, 10)
@@ -443,7 +441,6 @@ def export_pdf():
     for r in records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
-
         p.drawString(60, y, str(r.date))
         p.drawString(130, y, usr.name if usr else "-")
         p.drawString(220, y, proj.name if proj else "-")
@@ -462,7 +459,7 @@ def export_pdf():
             p.setFont(font_name, 10)
             y = height - 80
 
-    # 🔹 Súhrn
+    # Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
@@ -480,7 +477,6 @@ def export_pdf():
         download_name="vykonnostny_report.pdf",
         mimetype="application/pdf"
     )
-
 
 # ---------- USERS ----------
 @app.route('/users')
