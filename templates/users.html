@@ -27,9 +27,10 @@
             <span class="badge bg-secondary px-3 py-2">Používateľ</span>
           {% endif %}
 
-          {% if user.is_admin %}
+          {% if user.is_admin or user.id == u.id %}
           <!-- 🟢 Tlačidlo Zmeniť heslo -->
-          <button class="btn btn-outline-warning btn-sm mt-3" data-bs-toggle="modal"
+          <button type="button" class="btn btn-outline-warning btn-sm mt-3"
+                  data-bs-toggle="modal"
                   data-bs-target="#changePassModal{{ u.id }}">
             <i class="fa fa-key me-1"></i> Zmeniť heslo
           </button>
@@ -41,17 +42,32 @@
                 <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}" onsubmit="disableSubmit(this)">
                   <div class="modal-header border-0">
                     <h5 class="modal-title">
-                      <i class="fa fa-key me-2 text-warning"></i> Zmena hesla
+                      <i class="fa fa-key me-2 text-warning"></i>
+                      {% if user.id == u.id and not user.is_admin %}
+                        Zmeniť svoje heslo
+                      {% else %}
+                        Zmena hesla pre {{ u.name }}
+                      {% endif %}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                   </div>
                   <div class="modal-body">
-                    <label class="form-label">Nové heslo pre <strong>{{ u.name }}</strong></label>
-                    <div class="input-group">
+                    <label class="form-label">Nové heslo</label>
+                    <div class="input-group mb-3">
                       <input type="password" name="new_password" class="form-control" required minlength="4"
                              placeholder="Zadaj nové heslo" id="passwordInput{{ u.id }}">
                       <button class="btn btn-outline-secondary" type="button"
                               onclick="togglePassword('passwordInput{{ u.id }}', this)">
+                        <i class="fa fa-eye"></i>
+                      </button>
+                    </div>
+
+                    <label class="form-label">Zopakuj heslo</label>
+                    <div class="input-group">
+                      <input type="password" name="confirm_password" class="form-control" required minlength="4"
+                             placeholder="Zopakuj nové heslo" id="passwordConfirm{{ u.id }}">
+                      <button class="btn btn-outline-secondary" type="button"
+                              onclick="togglePassword('passwordConfirm{{ u.id }}', this)">
                         <i class="fa fa-eye"></i>
                       </button>
                     </div>
@@ -94,5 +110,12 @@ function disableSubmit(form) {
   btn.disabled = true;
   btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Ukladám...';
 }
+
+// zabráni reštartu modalu po submite
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-bs-toggle="modal"]').forEach(btn => {
+    btn.setAttribute('type', 'button');
+  });
+});
 </script>
 {% endblock %}
