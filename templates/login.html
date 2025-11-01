@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base_login.html' %}
 {% block content %}
 
 <style>
@@ -29,6 +29,7 @@ body {
   font-family: 'Inter', sans-serif;
   color: var(--text-color);
   transition: background 0.5s ease, color 0.3s ease;
+  overflow: hidden;
 }
 
 /* 🌙 Glassmorphic login card */
@@ -42,6 +43,7 @@ body {
   max-width: 420px;
   box-shadow: 0 8px 32px var(--shadow);
   transition: all 0.3s ease;
+  animation: fadeIn 0.8s ease;
 }
 
 .glass-card:hover {
@@ -113,9 +115,15 @@ body.dark-mode .btn-glass {
 body.dark-mode .theme-ball {
   left: 31px;
 }
+
+/* ✨ Animácie */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
 
-<!-- 🌙 Prepínač témy -->
+<!-- 🌗 Prepínač témy -->
 <div id="themeToggle" class="theme-toggle">
   <i class="fa fa-sun"></i>
   <i class="fa fa-moon"></i>
