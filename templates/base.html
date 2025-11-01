@@ -36,11 +36,11 @@
           </a>
         </li>
 
-        <!-- Pracovníci - iba pre admina -->
-        {% if session.get('user') and session['user']['is_admin'] %}
+        <!-- Používatelia - viditeľné pre všetkých, ale úpravy len pre adminov -->
+        {% if session.get('user') %}
         <li>
           <a href="{{ url_for('users_list') }}" class="{% if request.endpoint == 'users_list' %}active{% endif %}">
-            <i class="fa fa-users me-2"></i> Pracovníci
+            <i class="fa fa-users me-2"></i> Používatelia
           </a>
         </li>
         {% endif %}
@@ -99,3 +99,4 @@
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
+
