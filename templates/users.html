@@ -14,7 +14,7 @@
   <div class="row">
     {% for u in users %}
     <div class="col-md-4 col-lg-3 mb-4">
-      <div class="card user-card shadow-sm text-center">
+      <div class="card user-card shadow-sm text-center" style="transition: none;">
         <div class="card-body">
           <div class="avatar-circle bg-gradient mb-3">
             <span class="initials">{{ u.name[:2]|upper }}</span>
@@ -28,18 +28,18 @@
           {% endif %}
 
           {% if user.is_admin or user.id == u.id %}
-          <!-- 🟢 Tlačidlo Zmeniť heslo -->
-          <button type="button" class="btn btn-outline-warning btn-sm mt-3"
+          <!-- 🟡 Zmeniť heslo -->
+          <button type="button" class="btn btn-warning btn-sm mt-3"
                   data-bs-toggle="modal"
                   data-bs-target="#changePassModal{{ u.id }}">
             <i class="fa fa-key me-1"></i> Zmeniť heslo
           </button>
 
-          <!-- Modal pre zmenu hesla -->
-          <div class="modal fade" id="changePassModal{{ u.id }}" tabindex="-1" aria-hidden="true">
+          <!-- Modal -->
+          <div class="modal fade" id="changePassModal{{ u.id }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
             <div class="modal-dialog">
-              <div class="modal-content glass-card">
-                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}" onsubmit="disableSubmit(this)">
+              <div class="modal-content glass-card" style="transition: none;">
+                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}" onsubmit="return disableSubmit(this)">
                   <div class="modal-header border-0">
                     <h5 class="modal-title">
                       <i class="fa fa-key me-2 text-warning"></i>
@@ -49,8 +49,9 @@
                         Zmena hesla pre {{ u.name }}
                       {% endif %}
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                   </div>
+
                   <div class="modal-body">
                     <label class="form-label">Nové heslo</label>
                     <div class="input-group mb-3">
@@ -72,6 +73,7 @@
                       </button>
                     </div>
                   </div>
+
                   <div class="modal-footer border-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
                     <button type="submit" class="btn btn-warning">Uložiť</button>
@@ -91,7 +93,7 @@
   {% endif %}
 </div>
 
-<!-- 👁️ JS – ovládanie zobrazenia hesla + ochrana proti preblikávaniu -->
+<!-- Skripty -->
 <script>
 function togglePassword(id, btn) {
   const input = document.getElementById(id);
@@ -106,15 +108,19 @@ function togglePassword(id, btn) {
 }
 
 function disableSubmit(form) {
+  event.preventDefault();
   const btn = form.querySelector('button[type="submit"]');
   btn.disabled = true;
   btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Ukladám...';
+  setTimeout(() => form.submit(), 200);
+  return false;
 }
 
-// zabráni reštartu modalu po submite
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('[data-bs-toggle="modal"]').forEach(btn => {
-    btn.setAttribute('type', 'button');
+// Vypne hover animácie, ktoré spôsobujú prebliknutie
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('.card.user-card').forEach(card => {
+    card.style.transition = 'none';
+    card.addEventListener('mouseover', e => e.stopPropagation());
   });
 });
 </script>
