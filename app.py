@@ -392,7 +392,7 @@ def project_detail(id):
 # ---------- PDF EXPORT ----------
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.fonts import addMapping
+import urllib.request
 
 @app.route('/export/pdf')
 def export_pdf():
@@ -400,79 +400,36 @@ def export_pdf():
     if not user:
         return redirect(url_for('login'))
 
-    # 🔹 Registrácia fontu s diakritikou
-    font_path = os.path.join(app.root_path, 'static', 'fonts', 'DejaVuSans.ttf')
-    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
-    addMapping('DejaVuSans', 0, 0, 'DejaVuSans')
+    # 🔹 Cesta k fontu
+    font_dir = os.path.join(app.root_path, 'static', 'fonts')
+    os.makedirs(font_dir, exist_ok=True)
+    font_path = os.path.join(font_dir, 'DejaVuSans.ttf')
+
+    # 🔹 Ak font neexistuje, stiahni ho
+    if not os.path.exists(font_path):
+        try:
+            url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/version_2_37/ttf/DejaVuSans.ttf"
+            urllib.request.urlretrieve(url, font_path)
+            app.logger.info("✅ DejaVuSans.ttf font bol automaticky stiahnutý.")
+        except Exception as e:
+            app.logger.error(f"❌ Nepodarilo sa stiahnuť font: {e}")
+            # fallback – použije Helvetica bez diakritiky
+            font_path = None
+
+    # 🔹 Registrácia fontu (iba ak existuje)
+    if font_path and os.path.exists(font_path):
+        try:
+            pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+            font_name = "DejaVuSans"
+        except Exception as e:
+            app.logger.warning(f"⚠️ Font sa nepodarilo registrovať: {e}")
+            font_name = "Helvetica"
+    else:
+        font_name = "Helvetica"
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
-    p.setFont("DejaVuSans", 12)
-
-    width, height = A4
-    y = height - 80
-
-    # Hlavička
-    p.setFont("DejaVuSans", 16)
-    p.drawString(60, y, "HRC & Navate – Výkonnostný report")
-    y -= 20
-    p.setFont("DejaVuSans", 10)
-    p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-    y -= 25
-    p.line(50, y, width - 50, y)
-    y -= 25
-
-    # Hlavička tabuľky
-    p.setFont("DejaVuSans", 11)
-    headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
-    x_positions = [60, 130, 220, 350, 420, 490]
-    for x, text in zip(x_positions, headers):
-        p.drawString(x, y, text)
-    y -= 10
-    p.line(50, y, width - 50, y)
-    y -= 15
-
-    # Dáta
-    records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
-    total_hours, total_m2 = 0.0, 0.0
-    p.setFont("DejaVuSans", 10)
-
-    for r in records:
-        proj = Project.query.get(r.project_id)
-        usr = User.query.get(r.user_id)
-        p.drawString(60, y, str(r.date))
-        p.drawString(130, y, usr.name if usr else "—")
-        p.drawString(220, y, proj.name if proj else "—")
-        if r.unit_type == "hodiny":
-            p.drawRightString(400, y, f"{r.amount:.2f}")
-            total_hours += r.amount
-        elif r.unit_type == "m2":
-            p.drawRightString(470, y, f"{r.amount:.2f}")
-            total_m2 += r.amount
-        p.drawString(490, y, r.note or "")
-        y -= 18
-
-        if y < 80:
-            p.showPage()
-            p.setFont("DejaVuSans", 10)
-            y = height - 80
-
-    y -= 10
-    p.line(50, y, width - 50, y)
-    y -= 20
-    p.setFont("DejaVuSans", 12)
-    p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
-    y -= 18
-    p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
-
-    p.save()
-    buffer.seek(0)
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name='vykonnostny_report.pdf',
-        mimetype='application/pdf'
-    )
+    p.setFont(font_name, 12)
 # ---------- USERS ----------
 @app.route('/users')
 def users_list():
