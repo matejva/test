@@ -571,6 +571,22 @@ def edit_user(user_id):
 
     return render_template('edit_user.html', user=session_user, target=user_to_edit)
 
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    session_user = session.get('user')
+    if not session_user or not session_user.get('is_admin'):
+        flash("Nemáš oprávnenie vymazávať používateľov.", "danger")
+        return redirect(url_for('users_list'))
+
+    target = User.query.get_or_404(user_id)
+    if target.is_admin:
+        flash("Admina nie je možné vymazať.", "warning")
+        return redirect(url_for('users_list'))
+
+    db.session.delete(target)
+    db.session.commit()
+    flash("🗑️ Používateľ bol odstránený.", "success")
+    return redirect(url_for('users_list'))
 # ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
