@@ -292,14 +292,56 @@ def add_record():
 
 @app.route('/delete_record/<int:id>', methods=['POST'])
 def delete_record(id):
-    user = session.get('user')
-    if not user or not user.get('is_admin'):
+    session_user = session.get('user')
+    if not session_user:
         return redirect(url_for('login'))
-    rec = Record.query.get_or_404(id)
-    db.session.delete(rec)
-    db.session.commit()
-    flash("Záznam bol odstránený.", "success")
+
+    record = Record.query.get_or_404(id)
+
+    # 🔹 Admin môže všetko, používateľ len svoje
+    if not (session_user['is_admin'] or record.user_id == session_user['id']):
+        flash("Nemáš oprávnenie odstrániť tento záznam.", "danger")
+        return redirect(url_for('dashboard'))
+
+    try:
+        db.session.delete(record)
+        db.session.commit()
+        flash("Záznam bol odstránený.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Chyba pri odstraňovaní záznamu: {e}", "danger")
+
     return redirect(url_for('dashboard'))
+
+@app.route('/edit_record/<int:id>', methods=['GET', 'POST'])
+def edit_record(id):
+    session_user = session.get('user')
+    if not session_user:
+        return redirect(url_for('login'))
+
+    record = Record.query.get_or_404(id)
+
+    # 🔹 len admin alebo autor
+    if not (session_user['is_admin'] or record.user_id == session_user['id']):
+        flash("Nemáš oprávnenie upraviť tento záznam.", "danger")
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        try:
+            record.project_id = int(request.form['project_id'])
+            record.date = request.form['date']
+            record.unit_type = request.form['unit_type']
+            record.amount = float(request.form['amount'])
+            record.note = request.form['note']
+            db.session.commit()
+            flash("Záznam bol upravený.", "success")
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Chyba pri úprave záznamu: {e}", "danger")
+
+    projects = Project.query.order_by(Project.name).all()
+    return render_template('edit_record.html', record=record, projects=projects, user=session_user)
 
 
 # ---------- PROJECTS ----------
