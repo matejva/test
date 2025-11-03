@@ -8,6 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from datetime import date
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -125,10 +126,21 @@ def dashboard():
     if not session_user:
         return redirect(url_for('login'))
 
+    from datetime import date
+    from sqlalchemy import extract
+
     # --- 🔹 Filtrovanie ---
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
     unit_type_filter = request.args.get('unit_type')
+    selected_year = request.args.get('year', type=int)
+    selected_week = request.args.get('week', type=int)
+
+    # --- 🆕 Automatické zistenie aktuálneho týždňa a roka ---
+    today = date.today()
+    current_year, current_week, _ = today.isocalendar()
+    year = selected_year or current_year
+    week = selected_week or current_week
 
     # --- 🔹 Query builder ---
     query = Record.query
@@ -142,9 +154,12 @@ def dashboard():
 
     if selected_project:
         query = query.filter_by(project_id=selected_project)
-
     if unit_type_filter:
         query = query.filter_by(unit_type=unit_type_filter)
+
+    # --- 🆕 Filtrovanie podľa ISO týždňa a roka ---
+    query = query.filter(extract('isoyear', Record.date) == year)
+    query = query.filter(extract('week', Record.date) == week)
 
     # --- 🔹 Načítanie dát ---
     records = query.order_by(Record.date.desc()).all()
@@ -182,7 +197,7 @@ def dashboard():
     m2_labels = list(m2_map.keys())
     m2_values = list(m2_map.values())
 
-   # --- 🔹 Súhrn podľa typu jednotky (pre koláčový graf) ---
+    # --- 🔹 Súhrn podľa typu jednotky (pre koláčový graf) ---
     unit_map = {}
     for r in records:
         utype = r.unit_type or "Neznáme"
@@ -212,39 +227,36 @@ def dashboard():
 
     chart_labels_hours = sorted(date_data_hours.keys())
     chart_values_hours = [date_data_hours[k] for k in chart_labels_hours]
-
     chart_labels_m2 = sorted(date_data_m2.keys())
     chart_values_m2 = [date_data_m2[k] for k in chart_labels_m2]
 
-
-
-
-
     # --- 🔹 Render ---
     return render_template(
-    'dashboard.html',
-    user=session_user,
-    users=users,
-    projects=projects,
-    records=records,
-    total=total,
-    project_count=project_count,
-    chart_labels=chart_labels,
-    chart_values=chart_values,
-    hours_labels=hours_labels,
-    hours_values=hours_values,
-    m2_labels=m2_labels,
-    m2_values=m2_values,
-    unit_labels=unit_labels,
-    unit_values=unit_values,
-    chart_labels_hours=chart_labels_hours,
-    chart_values_hours=chart_values_hours,
-    chart_labels_m2=chart_labels_m2,
-    chart_values_m2=chart_values_m2,
-    selected_user=selected_user,
-    selected_project=selected_project,
-    unit_type_filter=unit_type_filter
-)
+        'dashboard.html',
+        user=session_user,
+        users=users,
+        projects=projects,
+        records=records,
+        total=total,
+        project_count=project_count,
+        chart_labels=chart_labels,
+        chart_values=chart_values,
+        hours_labels=hours_labels,
+        hours_values=hours_values,
+        m2_labels=m2_labels,
+        m2_values=m2_values,
+        unit_labels=unit_labels,
+        unit_values=unit_values,
+        chart_labels_hours=chart_labels_hours,
+        chart_values_hours=chart_values_hours,
+        chart_labels_m2=chart_labels_m2,
+        chart_values_m2=chart_values_m2,
+        selected_user=selected_user,
+        selected_project=selected_project,
+        unit_type_filter=unit_type_filter,
+        selected_year=year,
+        selected_week=week
+    )
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
