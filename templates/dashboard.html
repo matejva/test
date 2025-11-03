@@ -92,7 +92,7 @@ body.dark-mode .btn-glass {
 }
 .btn-glass:hover { background: rgba(0, 191, 166, 0.4); }
 
-/* 🎯 Rádio guličky - čisté klikateľné */
+/* 🎯 Rádio guličky */
 .form-check-input[type="radio"] {
   width: 1.2em;
   height: 1.2em;
@@ -101,17 +101,12 @@ body.dark-mode .btn-glass {
   background-color: transparent;
   transition: all 0.2s ease-in-out;
 }
-
-.form-check-input[type="radio"]:hover {
-  box-shadow: 0 0 5px var(--accent);
-}
-
+.form-check-input[type="radio"]:hover { box-shadow: 0 0 5px var(--accent); }
 .form-check-input[type="radio"]:checked {
   background-color: var(--accent);
   border-color: var(--accent);
   box-shadow: 0 0 6px var(--accent);
 }
-
 .form-check-label {
   cursor: pointer;
   font-weight: 500;
@@ -119,7 +114,6 @@ body.dark-mode .btn-glass {
   margin-left: 0.3em;
   user-select: none;
 }
-
 .d-flex.align-items-center.gap-4 .form-check {
   display: flex;
   align-items: center;
@@ -187,51 +181,51 @@ body.dark-mode .btn-glass {
   </div>
 
   <!-- Charts -->
- <div class="row g-4 mb-4">
-  <div class="col-lg-6">
-    <div class="glass-card p-4">
-      <h6><i class="fa fa-clock text-info me-2"></i> Výkon podľa hodín</h6>
-      <div style="height:280px;">
-        <canvas id="hoursDateChart"
-          data-labels='{{ chart_labels_hours|tojson }}'
-          data-values='{{ chart_values_hours|tojson }}'></canvas>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6><i class="fa fa-clock text-info me-2"></i> Výkon podľa hodín</h6>
+        <div style="height:280px;">
+          <canvas id="hoursDateChart"
+            data-labels='{{ chart_labels_hours|tojson }}'
+            data-values='{{ chart_values_hours|tojson }}'></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6><i class="fa fa-ruler-combined text-warning me-2"></i> Výkon podľa m²</h6>
+        <div style="height:280px;">
+          <canvas id="m2DateChart"
+            data-labels='{{ chart_labels_m2|tojson }}'
+            data-values='{{ chart_values_m2|tojson }}'></canvas>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-lg-6">
-    <div class="glass-card p-4">
-      <h6><i class="fa fa-ruler-combined text-warning me-2"></i> Výkon podľa m²</h6>
-      <div style="height:280px;">
-        <canvas id="m2DateChart"
-          data-labels='{{ chart_labels_m2|tojson }}'
-          data-values='{{ chart_values_m2|tojson }}'></canvas>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div class="row g-4 mb-4">
-  <div class="col-lg-6">
-    <div class="glass-card p-4">
-      <h6><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
-      <div style="height:280px;">
-        <canvas id="hoursChart"
-          data-labels='{{ hours_labels|tojson }}'
-          data-values='{{ hours_values|tojson }}'></canvas>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6><i class="fa fa-clock text-info me-2"></i> Hodiny podľa projektu</h6>
+        <div style="height:280px;">
+          <canvas id="hoursChart"
+            data-labels='{{ hours_labels|tojson }}'
+            data-values='{{ hours_values|tojson }}'></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h6><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
+        <div style="height:280px;">
+          <canvas id="m2Chart"
+            data-labels='{{ m2_labels|tojson }}'
+            data-values='{{ m2_values|tojson }}'></canvas>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-lg-6">
-    <div class="glass-card p-4">
-      <h6><i class="fa fa-ruler-combined text-warning me-2"></i> m² podľa projektu</h6>
-      <div style="height:280px;">
-        <canvas id="m2Chart"
-          data-labels='{{ m2_labels|tojson }}'
-          data-values='{{ m2_values|tojson }}'></canvas>
-      </div>
-    </div>
-  </div>
-</div>
 
   <!-- Records Table -->
   <div class="glass-card p-4 mb-5">
@@ -247,7 +241,8 @@ body.dark-mode .btn-glass {
             <th>Množstvo</th>
             <th>Jednotka</th>
             <th>Poznámka</th>
-            {% if user.is_admin %}<th>Akcia</th>{% endif %}
+            <!-- 🆕 Akcie -->
+            <th>Akcie</th>
           </tr>
         </thead>
         <tbody>
@@ -259,14 +254,21 @@ body.dark-mode .btn-glass {
             <td>{{ "%.2f"|format(r.amount) }}</td>
             <td>{{ r.unit_type or '' }}</td>
             <td>{{ r.note or '' }}</td>
-            {% if user.is_admin %}
             <td>
-              <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" 
-                    onsubmit="return confirm('Naozaj chceš zmazať tento záznam?')">
-                <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
-              </form>
+              {% if user.is_admin or r.user_id == user.id %}
+              <div class="d-flex gap-2">
+                <a href="{{ url_for('edit_record', id=r.id) }}" class="btn btn-sm btn-outline-primary" title="Upraviť">
+                  <i class="fa fa-pen"></i>
+                </a>
+                <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" 
+                      onsubmit="return confirm('Naozaj chceš zmazať tento záznam?');">
+                  <button class="btn btn-sm btn-outline-danger" title="Vymazať"><i class="fa fa-trash"></i></button>
+                </form>
+              </div>
+              {% else %}
+              <span class="text-muted small">–</span>
+              {% endif %}
             </td>
-            {% endif %}
           </tr>
           {% endfor %}
         </tbody>
@@ -300,22 +302,20 @@ body.dark-mode .btn-glass {
             <label class="form-label">Dátum</label>
             <input type="date" name="date" class="form-control" required>
           </div>
-         <div class="col-md-3">
-<!-- 🟢 Typ jednotky -->
-<!-- Typ jednotky -->
-<div class="mb-3">
-  <label class="form-label d-block mb-2">Typ jednotky</label>
-  <div class="d-flex align-items-center gap-4">
-    <div class="form-check">
-      <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
-      <label class="form-check-label" for="unit_hodiny">Hodiny</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
-      <label class="form-check-label" for="unit_m2">m²</label>
-    </div>
-  </div>
-</div>
+          <div class="col-md-3">
+            <div class="mb-3">
+              <label class="form-label d-block mb-2">Typ jednotky</label>
+              <div class="d-flex align-items-center gap-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
+                  <label class="form-check-label" for="unit_hodiny">Hodiny</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
+                  <label class="form-check-label" for="unit_m2">m²</label>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label">Množstvo</label>
@@ -338,7 +338,6 @@ body.dark-mode .btn-glass {
 <!-- JS -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // 🌗 Theme toggle with smooth animation
   const toggle = document.getElementById("themeToggle");
   const body = document.body;
   const saved = localStorage.getItem("theme");
@@ -349,7 +348,6 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("theme", body.classList.contains("dark-mode") ? "dark" : "light");
   });
 
-  // 📈 Charts
   const makeChart = (id, type, color, gradient = false) => {
     const el = document.getElementById(id);
     if (!el) return;
