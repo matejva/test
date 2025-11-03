@@ -8,7 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from datetime import date
+from sqlalchemy import func, cast, Date
 
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -158,8 +158,12 @@ def dashboard():
         query = query.filter_by(unit_type=unit_type_filter)
 
     # --- 🆕 Filtrovanie podľa ISO týždňa a roka ---
-    query = query.filter(extract('isoyear', Record.date) == year)
-    query = query.filter(extract('week', Record.date) == week)
+    query = query.filter(
+        func.extract('isoyear', cast(Record.date, Date)) == year
+    )
+    query = query.filter(
+        func.extract('week', cast(Record.date, Date)) == week
+    )
 
     # --- 🔹 Načítanie dát ---
     records = query.order_by(Record.date.desc()).all()
