@@ -10,7 +10,7 @@
   animation: none !important;
 }
 .modal-backdrop.show {
-  opacity: 0.3 !important; /* mierne stmavenie bez animácie */
+  opacity: 0.3 !important;
 }
 body.modal-open {
   overflow: hidden !important;
@@ -41,11 +41,12 @@ body.modal-open {
   <div class="row">
     {% for u in users %}
     <div class="col-md-4 col-lg-3 mb-4">
-      <div class="card user-card shadow-sm text-center" style="cursor: default;">
+      <div class="card user-card shadow-sm text-center p-3" style="cursor: default;">
         <div class="card-body">
           <div class="avatar-circle bg-gradient mb-3">
             <span class="initials">{{ u.name[:2]|upper }}</span>
           </div>
+
           <h5 class="fw-bold mb-1">{{ u.name }}</h5>
           <p class="text-muted mb-2 small">{{ u.email or 'Bez e-mailu' }}</p>
 
@@ -55,7 +56,7 @@ body.modal-open {
             <span class="badge bg-secondary px-3 py-2">Používateľ</span>
           {% endif %}
 
-          <!-- 🟡 Admin vidí všetky heslá, používateľ len svoje -->
+          <!-- 🟡 Zmena hesla -->
           {% if user.is_admin or user.id == u.id %}
           <button type="button" class="btn btn-warning btn-sm mt-3"
                   data-bs-toggle="modal"
@@ -69,60 +70,77 @@ body.modal-open {
           </button>
           {% endif %}
 
-          <!-- Modal (len ak admin alebo ide o seba) -->
-          {% if user.is_admin or user.id == u.id %}
-          <div class="modal" id="changePassModal{{ u.id }}" tabindex="-1"
-               aria-labelledby="changePassLabel{{ u.id }}" aria-hidden="true"
-               data-bs-backdrop="static">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content">
-                <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}">
-                  <div class="modal-header border-0">
-                    <h5 class="modal-title">
-                      <i class="fa fa-key me-2 text-warning"></i>
-                      {% if user.id == u.id and not user.is_admin %}
-                        Zmeniť svoje heslo
-                      {% else %}
-                        Zmena hesla pre {{ u.name }}
-                      {% endif %}
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-
-                  <div class="modal-body">
-                    <label class="form-label">Nové heslo</label>
-                    <div class="input-group mb-3">
-                      <input type="password" name="new_password" class="form-control" required minlength="4"
-                             placeholder="Zadaj nové heslo" id="passwordInput{{ u.id }}">
-                      <button class="btn btn-outline-secondary" type="button"
-                              onclick="togglePassword('passwordInput{{ u.id }}', this)">
-                        <i class="fa fa-eye"></i>
-                      </button>
-                    </div>
-
-                    <label class="form-label">Zopakuj heslo</label>
-                    <div class="input-group">
-                      <input type="password" name="confirm_password" class="form-control" required minlength="4"
-                             placeholder="Zopakuj nové heslo" id="passwordConfirm{{ u.id }}">
-                      <button class="btn btn-outline-secondary" type="button"
-                              onclick="togglePassword('passwordConfirm{{ u.id }}', this)">
-                        <i class="fa fa-eye"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
-                    <button type="submit" class="btn btn-warning">Uložiť</button>
-                  </div>
-                </form>
-              </div>
-            </div>
+          <!-- 🔹 Admin akcie -->
+          {% if user.is_admin %}
+          <div class="d-flex justify-content-center gap-2 mt-3">
+            <a href="{{ url_for('edit_user', user_id=u.id) }}" class="btn btn-outline-primary btn-sm" title="Upraviť">
+              <i class="fa fa-pen"></i>
+            </a>
+            {% if not u.is_admin %}
+            <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}"
+                  onsubmit="return confirm('Naozaj chceš vymazať používateľa {{ u.name }}?');" style="display:inline;">
+              <button type="submit" class="btn btn-outline-danger btn-sm" title="Vymazať">
+                <i class="fa fa-trash"></i>
+              </button>
+            </form>
+            {% endif %}
           </div>
           {% endif %}
         </div>
       </div>
     </div>
+
+    <!-- Modal na zmenu hesla -->
+    {% if user.is_admin or user.id == u.id %}
+    <div class="modal" id="changePassModal{{ u.id }}" tabindex="-1"
+         aria-labelledby="changePassLabel{{ u.id }}" aria-hidden="true"
+         data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="POST" action="{{ url_for('change_password', user_id=u.id) }}">
+            <div class="modal-header border-0">
+              <h5 class="modal-title">
+                <i class="fa fa-key me-2 text-warning"></i>
+                {% if user.id == u.id and not user.is_admin %}
+                  Zmeniť svoje heslo
+                {% else %}
+                  Zmena hesla pre {{ u.name }}
+                {% endif %}
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+              <label class="form-label">Nové heslo</label>
+              <div class="input-group mb-3">
+                <input type="password" name="new_password" class="form-control" required minlength="4"
+                       placeholder="Zadaj nové heslo" id="passwordInput{{ u.id }}">
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="togglePassword('passwordInput{{ u.id }}', this)">
+                  <i class="fa fa-eye"></i>
+                </button>
+              </div>
+
+              <label class="form-label">Zopakuj heslo</label>
+              <div class="input-group">
+                <input type="password" name="confirm_password" class="form-control" required minlength="4"
+                       placeholder="Zopakuj nové heslo" id="passwordConfirm{{ u.id }}">
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="togglePassword('passwordConfirm{{ u.id }}', this)">
+                  <i class="fa fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="modal-footer border-0">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
+              <button type="submit" class="btn btn-warning">Uložiť</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}
     {% endfor %}
   </div>
   {% else %}
