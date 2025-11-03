@@ -160,6 +160,22 @@ body.dark-mode .btn-glass {
         <option value="m2" {% if unit_type_filter == "m2" %}selected{% endif %}>m²</option>
       </select>
 
+      <!-- 🆕 FILTER PODĽA ROKU -->
+      <select name="year" class="form-select">
+        <option value="">📅 Všetky roky</option>
+        {% for y in range(2023, 2031) %}
+        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- 🆕 FILTER PODĽA TÝŽDŇA -->
+      <select name="week" class="form-select">
+        <option value="">🗓️ Všetky týždne</option>
+        {% for w in range(1, 54) %}
+        <option value="{{ w }}" {% if selected_week == w %}selected{% endif %}>Týždeň {{ w }}</option>
+        {% endfor %}
+      </select>
+
       <button type="submit" class="btn btn-glass">
         <i class="fa fa-filter me-1"></i> Filtrovať
       </button>
@@ -230,6 +246,12 @@ body.dark-mode .btn-glass {
   <!-- Records Table -->
   <div class="glass-card p-4 mb-5">
     <h5 class="fw-semibold mb-3">📋 Záznamy</h5>
+
+    <!-- 🆕 Info o týždni -->
+    <p class="text-muted mb-3">
+      📅 Zobrazuje sa týždeň <strong>{{ selected_week }}</strong> / <strong>{{ selected_year }}</strong>
+    </p>
+
     {% if records %}
     <div class="table-responsive">
       <table class="table table-hover align-middle">
@@ -241,7 +263,6 @@ body.dark-mode .btn-glass {
             <th>Množstvo</th>
             <th>Jednotka</th>
             <th>Poznámka</th>
-            <!-- 🆕 Akcie -->
             <th>Akcie</th>
           </tr>
         </thead>
