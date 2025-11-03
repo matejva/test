@@ -384,23 +384,31 @@ document.addEventListener("DOMContentLoaded", () => {
       bgColor = grad;
     }
 
-    new Chart(ctx, {
-      type,
-      data: {
-        labels,
-        datasets: [{ 
-          data, 
-          fill: gradient, 
-          borderColor: color, 
-          backgroundColor: bgColor, 
-          tension: 0.4, 
-          pointRadius: 4,
-          borderWidth: 2 
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-  };
+  new Chart(ctx, {
+  type,
+  data: {
+    labels,
+    datasets: [{ 
+      data, 
+      fill: gradient, 
+      borderColor: color, 
+      backgroundColor: bgColor, 
+      tension: 0.4, 
+      pointRadius: 4,
+      borderWidth: 2 
+    }]
+  },
+  options: { 
+    responsive: true, 
+    maintainAspectRatio: false, 
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        beginAtZero: true   // ✅ všetky grafy začnú od nuly
+      }
+    }
+  }
+});
 
   makeChart("dateChart", "line", "#00bfa6", true);
   makeChart("hoursChart", "bar", "#00bfa6");
