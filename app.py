@@ -546,6 +546,31 @@ def create_user():
 
     return render_template('create_user.html', user=user)
 
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+def edit_user(user_id):
+    session_user = session.get('user')
+    if not session_user or not session_user.get('is_admin'):
+        flash("Nemáš oprávnenie upravovať používateľov.", "danger")
+        return redirect(url_for('users_list'))
+
+    user_to_edit = User.query.get_or_404(user_id)
+
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        new_email = request.form.get('email')
+
+        if not new_name or not new_email:
+            flash("Meno a e-mail sú povinné.", "warning")
+            return redirect(url_for('edit_user', user_id=user_id))
+
+        user_to_edit.name = new_name
+        user_to_edit.email = new_email
+        db.session.commit()
+        flash("✅ Používateľ bol upravený.", "success")
+        return redirect(url_for('users_list'))
+
+    return render_template('edit_user.html', user=session_user, target=user_to_edit)
+
 # ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
