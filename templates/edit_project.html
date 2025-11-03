@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+  <div class="card shadow-sm">
+    <div class="card-header bg-warning text-dark fw-bold">
+      <i class="fa fa-pen me-2"></i>Upraviť projekt
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="mb-3">
+          <label for="name" class="form-label">Názov projektu</label>
+          <input type="text" name="name" id="name" class="form-control" value="{{ project.name }}" required>
+        </div>
+        <div class="d-flex justify-content-between">
+          <a href="{{ url_for('projects') }}" class="btn btn-outline-secondary">Zrušiť</a>
+          <button type="submit" class="btn btn-warning">Uložiť zmeny</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
