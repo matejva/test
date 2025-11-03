@@ -370,45 +370,57 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const makeChart = (id, type, color, gradient = false) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const ctx = el.getContext("2d");
-    const labels = JSON.parse(el.dataset.labels || "[]");
-    const data = JSON.parse(el.dataset.values || "[]");
+  const el = document.getElementById(id);
+  if (!el) return;
+  const ctx = el.getContext("2d");
+  
+  const labels = JSON.parse(el.dataset.labels || "[]");
+  const data = JSON.parse(el.dataset.values || "[]");
 
-    let bgColor = color;
-    if (gradient) {
-      const grad = ctx.createLinearGradient(0, 0, 0, 200);
-      grad.addColorStop(0, color + "cc");
-      grad.addColorStop(1, color + "11");
-      bgColor = grad;
-    }
+  // 🧭 Debug – ukáže v konzole dáta pre každý graf
+  console.log(`Graf: ${id}`, labels, data);
+
+  if (!labels.length || !data.length) {
+    console.warn(`⚠️ Graf ${id} nemá dáta, preskakujem`);
+    return;
+  }
+
+  let bgColor = color;
+  if (gradient) {
+    const grad = ctx.createLinearGradient(0, 0, 0, 200);
+    grad.addColorStop(0, color + "cc");
+    grad.addColorStop(1, color + "11");
+    bgColor = grad;
+  }
 
   new Chart(ctx, {
-  type,
-  data: {
-    labels,
-    datasets: [{ 
-      data, 
-      fill: gradient, 
-      borderColor: color, 
-      backgroundColor: bgColor, 
-      tension: 0.4, 
-      pointRadius: 4,
-      borderWidth: 2 
-    }]
-  },
-  options: { 
-    responsive: true, 
-    maintainAspectRatio: false, 
-    plugins: { legend: { display: false } },
-    scales: {
-      y: {
-        beginAtZero: true   // ✅ všetky grafy začnú od nuly
+    type,
+    data: {
+      labels,
+      datasets: [{
+        label: id,
+        data,
+        fill: gradient,
+        borderColor: color,
+        backgroundColor: bgColor,
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,   // ✅ vždy od nuly
+          ticks: { precision: 0 } // 🔹 zaokrúhlené hodnoty
+        }
       }
     }
-  }
-});
+  });
+};
 
   makeChart("dateChart", "line", "#00bfa6", true);
   makeChart("hoursChart", "bar", "#00bfa6");
