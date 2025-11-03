@@ -390,6 +390,28 @@ def project_detail(id):
         user=user
     )
 
+@app.route('/edit_project/<int:id>', methods=['GET', 'POST'])
+def edit_project(id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash("Nemáš oprávnenie upravovať projekty.", "danger")
+        return redirect(url_for('projects'))
+
+    project = Project.query.get_or_404(id)
+
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        if not new_name.strip():
+            flash("Názov projektu nemôže byť prázdny.", "warning")
+            return redirect(url_for('edit_project', id=id))
+
+        project.name = new_name.strip()
+        db.session.commit()
+        flash("✅ Projekt bol upravený.", "success")
+        return redirect(url_for('projects'))
+
+    return render_template('edit_project.html', project=project, user=user)
+
 
 # ---------- PDF EXPORT ----------
 @app.route('/export/pdf')
