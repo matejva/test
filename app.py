@@ -10,6 +10,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import func, cast, Date
 
+
 # ---------- CONFIG ----------
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
@@ -740,6 +741,19 @@ def delete_document(document_id):
     if user_id:
         return redirect(url_for('documents', user_id=user_id))
     return redirect(url_for('documents'))
+
+    # 🧩 Route na sťahovanie dokumentov
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        """Sprístupní uložený dokument na stiahnutie."""
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        file_path = os.path.join(upload_folder, filename)
+        
+        if not os.path.exists(file_path):
+            flash('Súbor nebol nájdený.', 'danger')
+            return redirect(url_for('documents'))
+        
+        return send_from_directory(upload_folder, filename, as_attachment=True)
 
 
 # ---------- DB INIT ----------
