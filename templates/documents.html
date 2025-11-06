@@ -24,7 +24,9 @@
   <!-- Zoznam dokumentov -->
   <div class="card p-4 shadow-sm">
     <h5 class="mb-3">
-      {% if user.is_admin %}
+      {% if selected_user_name %}
+        Dokumenty používateľa: <span class="text-primary">{{ selected_user_name }}</span>
+      {% elif user.is_admin %}
         Všetky dokumenty
       {% else %}
         Moje dokumenty
@@ -41,6 +43,9 @@
                 <th>Používateľ</th>
               {% endif %}
               <th>Stiahnuť</th>
+              {% if user.is_admin %}
+                <th>Akcie</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -58,6 +63,19 @@
                    <i class="fa fa-download me-1"></i> Stiahnuť
                 </a>
               </td>
+
+              {% if user.is_admin %}
+              <td>
+                <form method="POST" 
+                      action="{{ url_for('delete_document', document_id=doc.id, user_id=selected_user_id) }}"
+                      onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');"
+                      style="display:inline;">
+                  <button class="btn btn-outline-danger btn-sm">
+                    <i class="fa fa-trash"></i> Vymazať
+                  </button>
+                </form>
+              </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
