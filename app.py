@@ -653,27 +653,46 @@ def delete_user(user_id):
     return redirect(url_for('users_list'))
 # ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
+@app.route('/documents', methods=['GET', 'POST'])
 def documents():
     session_user = session.get('user')
     if not session_user:
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        file = request.files.get('file')
-        if file and file.filename:
-            safe = secure_filename(file.filename)
-            fname = f"{session_user['id']}_{int(datetime.utcnow().timestamp())}_{safe}"
-            path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
-            file.save(path)
-            doc = Document(user_id=session_user['id'], filename=fname)
-            db.session.add(doc)
-            db.session.commit()
-            flash("Dokument nahraný!", "success")
-            return redirect(url_for('documents'))
-        flash("Nebolo možné nahrať súbor.", "danger")
+        file = request.files['file']
+        if file:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
 
-    user_docs = Document.query.filter_by(user_id=session_user['id']).all()
-    return render_template('documents.html', documents=user_docs)
+            new_doc = Document(
+                filename=filename,
+                user_id=session_user['id']
+            )
+            db.session.add(new_doc)
+            db.session.commit()
+            flash('Dokument bol úspešne nahratý.', 'success')
+            return redirect(url_for('documents'))
+
+    # 🆕 Admin vidí všetky dokumenty, používateľ len svoje
+    if session_user.get('is_admin'):
+        documents = (
+            db.session.query(Document, User.name.label('user_name'))
+            .join(User, Document.user_id == User.id)
+            .add_columns(Document.filename, Document.user_id)
+            .order_by(Document.id.desc())
+            .all()
+        )
+        # 🧩 Pre šablónu — aby sa dal prístupovať ako doc.filename a doc.user_name
+        documents = [
+            {'filename': d.filename, 'user_name': u.user_name}
+            for d, u in [(row, row) for row in documents]
+        ]
+    else:
+        documents = Document.query.filter_by(user_id=session_user['id']).all()
+
+    return render_template('documents.html', documents=documents, user=session_user)
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
