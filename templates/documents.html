@@ -57,12 +57,22 @@
                 <td>{{ doc.user_name or 'Neznámy používateľ' }}</td>
               {% endif %}
 
-              <td>
-                <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" 
-                   class="btn btn-outline-success btn-sm">
-                   <i class="fa fa-download me-1"></i> Stiahnuť
-                </a>
-              </td>
+             <td class="d-flex gap-2">
+                  <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" 
+                     class="btn btn-outline-success btn-sm">
+                     <i class="fa fa-download me-1"></i> Stiahnuť
+                  </a>
+                
+                  {% if user.is_admin %}
+                  <form method="POST" 
+                        action="{{ url_for('delete_document', document_id=doc.id, user_id=selected_user_id) }}"
+                        onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                      <i class="fa fa-trash"></i> Vymazať
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
 
               {% if user.is_admin %}
               <td>
