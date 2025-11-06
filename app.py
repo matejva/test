@@ -653,12 +653,15 @@ def delete_user(user_id):
     return redirect(url_for('users_list'))
 # ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
-@app.route('/documents', methods=['GET', 'POST'])
 def documents():
     session_user = session.get('user')
     if not session_user:
         return redirect(url_for('login'))
 
+    selected_user_id = request.args.get('user_id', type=int)
+    selected_user_name = None
+
+    # 🔹 Upload súboru
     if request.method == 'POST':
         file = request.files['file']
         if file:
@@ -675,24 +678,39 @@ def documents():
             flash('Dokument bol úspešne nahratý.', 'success')
             return redirect(url_for('documents'))
 
-    # 🆕 Admin vidí všetky dokumenty, používateľ len svoje
+    # 🔹 Admin – všetky dokumenty alebo len jedného používateľa
     if session_user.get('is_admin'):
-        documents = (
+        query = (
             db.session.query(Document, User.name.label('user_name'))
             .join(User, Document.user_id == User.id)
             .add_columns(Document.filename, Document.user_id)
             .order_by(Document.id.desc())
-            .all()
         )
-        # 🧩 Pre šablónu — aby sa dal prístupovať ako doc.filename a doc.user_name
+
+        if selected_user_id:
+            query = query.filter(Document.user_id == selected_user_id)
+            selected_user = User.query.get(selected_user_id)
+            if selected_user:
+                selected_user_name = selected_user.name
+
+        documents = query.all()
+
+        # prevedieme výsledky na jednoduchý formát pre HTML
         documents = [
             {'filename': d.filename, 'user_name': u.user_name}
             for d, u in [(row, row) for row in documents]
         ]
+
+    # 🔹 Bežný používateľ – len vlastné dokumenty
     else:
         documents = Document.query.filter_by(user_id=session_user['id']).all()
 
-    return render_template('documents.html', documents=documents, user=session_user)
+    return render_template(
+        'documents.html',
+        documents=documents,
+        user=session_user,
+        selected_user_name=selected_user_name
+    )
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
