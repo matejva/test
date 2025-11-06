@@ -651,6 +651,7 @@ def delete_user(user_id):
     db.session.commit()
     flash("🗑️ Používateľ bol odstránený.", "success")
     return redirect(url_for('users_list'))
+    
 # ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
@@ -683,7 +684,7 @@ def documents():
         query = (
             db.session.query(Document, User.name.label('user_name'))
             .join(User, Document.user_id == User.id)
-            .add_columns(Document.filename, Document.user_id)
+            .add_columns(Document.id, Document.filename, Document.user_id)
             .order_by(Document.id.desc())
         )
 
@@ -697,7 +698,7 @@ def documents():
 
         # prevedieme výsledky na jednoduchý formát pre HTML
         documents = [
-            {'filename': d.filename, 'user_name': u.user_name}
+            {'id': d.id, 'filename': d.filename, 'user_name': u.user_name}
             for d, u in [(row, row) for row in documents]
         ]
 
@@ -709,21 +710,36 @@ def documents():
         'documents.html',
         documents=documents,
         user=session_user,
-        selected_user_name=selected_user_name
+        selected_user_name=selected_user_name,
+        selected_user_id=selected_user_id
     )
 
-@app.route('/uploads/<path:filename>')
-def uploaded_file(filename):
-    session_user = session.get('user')
-    if not session_user:
-        return redirect(url_for('login'))
 
-    doc = Document.query.filter_by(filename=filename).first_or_404()
-    if not (session_user.get('is_admin') or doc.user_id == session_user['id']):
-        flash("Nemáte prístup k tomuto súboru.")
+# 🧩 Nová route — Mazanie dokumentu (len admin)
+@app.route('/delete_document/<int:document_id>', methods=['POST'])
+def delete_document(document_id):
+    session_user = session.get('user')
+    if not session_user or not session_user.get('is_admin'):
+        flash('Nemáš oprávnenie na túto akciu.', 'danger')
         return redirect(url_for('documents'))
 
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    doc = Document.query.get_or_404(document_id)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], doc.filename)
+
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        db.session.delete(doc)
+        db.session.commit()
+        flash(f'Dokument "{doc.filename}" bol odstránený.', 'success')
+    except Exception as e:
+        flash(f'Chyba pri mazaní: {str(e)}', 'danger')
+
+    # 🔹 zachová query param ?user_id= pri návrate
+    user_id = request.args.get('user_id')
+    if user_id:
+        return redirect(url_for('documents', user_id=user_id))
+    return redirect(url_for('documents'))
 
 
 # ---------- DB INIT ----------
