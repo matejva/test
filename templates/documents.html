@@ -42,10 +42,7 @@
               {% if user.is_admin %}
                 <th>Používateľ</th>
               {% endif %}
-              <th>Stiahnuť</th>
-              {% if user.is_admin %}
-                <th>Akcie</th>
-              {% endif %}
+              <th>Akcie</th>
             </tr>
           </thead>
           <tbody>
@@ -57,35 +54,24 @@
                 <td>{{ doc.user_name or 'Neznámy používateľ' }}</td>
               {% endif %}
 
-             <td class="d-flex gap-2">
-                  <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" 
-                     class="btn btn-outline-success btn-sm">
-                     <i class="fa fa-download me-1"></i> Stiahnuť
-                  </a>
-                
-                  {% if user.is_admin %}
-                  <form method="POST" 
-                        action="{{ url_for('delete_document', document_id=doc.id, user_id=selected_user_id) }}"
-                        onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                      <i class="fa fa-trash"></i> Vymazať
-                    </button>
-                  </form>
-                  {% endif %}
-                </td>
+              <td class="d-flex gap-2">
+                <!-- 🟢 Stiahnuť -->
+                <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" 
+                   class="btn btn-outline-success btn-sm">
+                   <i class="fa fa-download me-1"></i> Stiahnuť
+                </a>
 
-              {% if user.is_admin %}
-              <td>
+                <!-- 🔴 Vymazať (admin alebo vlastník) -->
+                {% if user.is_admin or doc.user_id == user.id %}
                 <form method="POST" 
                       action="{{ url_for('delete_document', document_id=doc.id, user_id=selected_user_id) }}"
-                      onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');"
-                      style="display:inline;">
-                  <button class="btn btn-outline-danger btn-sm">
+                      onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">
                     <i class="fa fa-trash"></i> Vymazať
                   </button>
                 </form>
+                {% endif %}
               </td>
-              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
