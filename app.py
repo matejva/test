@@ -401,25 +401,34 @@ def project_detail(id):
     if not user:
         return redirect(url_for('login'))
 
+    # 🛑 Ak používateľ nie je admin → presmeruj
+    if not user.get('is_admin'):
+        flash("Nemáš oprávnenie zobraziť detaily projektov.", "danger")
+        return redirect(url_for('dashboard'))
+
+    # 🔹 Načítanie projektu
     project = Project.query.get_or_404(id)
 
-    # Záznamy k projektu
+    # 🔹 Záznamy k projektu
     records = (
         Record.query.filter_by(project_id=id)
         .join(User, Record.user_id == User.id)
-        .add_columns(User.name.label('username'),
-                     Record.date,
-                     Record.amount,
-                     Record.unit_type,
-                     Record.note)
+        .add_columns(
+            User.name.label('username'),
+            Record.date,
+            Record.amount,
+            Record.unit_type,
+            Record.note
+        )
         .order_by(Record.date.desc())
         .all()
     )
 
-    # Sumár podľa používateľov a jednotiek
+    # 🔹 Sumár podľa používateľov a jednotiek
     per_user = []
     total_h, total_m2 = 0, 0
     user_sums = {}
+
     for r in records:
         uname = r.username
         if uname not in user_sums:
@@ -434,7 +443,7 @@ def project_detail(id):
     for uname, vals in user_sums.items():
         per_user.append({'user': uname, 'h': vals['h'], 'm2': vals['m2']})
 
-    # Render detailu projektu
+    # 🔹 Render detailu projektu
     return render_template(
         'project_detail.html',
         project=project,
