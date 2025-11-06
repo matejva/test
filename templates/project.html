@@ -54,6 +54,14 @@ body.dark-mode .btn-glass {
 .action-btns .btn {
   margin-left: 4px;
 }
+
+/* 🆕 Pasívny názov projektu pre neadminov */
+.project-name-disabled {
+  color: gray;
+  cursor: not-allowed;
+  text-decoration: none;
+  opacity: 0.7;
+}
 </style>
 
 <div class="container-fluid py-4">
@@ -102,9 +110,15 @@ body.dark-mode .btn-glass {
           {% for p in projects %}
           <tr>
             <td>
-              <a href="{{ url_for('project_detail', id=p.id) }}" class="text-decoration-none fw-semibold text-dark">
-                {{ p.name }}
-              </a>
+              {% if is_admin %}
+                <!-- 🔹 Admin môže kliknúť -->
+                <a href="{{ url_for('project_detail', id=p.id) }}" class="text-decoration-none fw-semibold text-dark">
+                  {{ p.name }}
+                </a>
+              {% else %}
+                <!-- 🔸 Non-admin: len text, žiadny odkaz -->
+                <span class="fw-semibold project-name-disabled">{{ p.name }}</span>
+              {% endif %}
             </td>
 
             {% if is_admin %}
