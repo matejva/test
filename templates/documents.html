@@ -23,13 +23,23 @@
 
   <!-- Zoznam dokumentov -->
   <div class="card p-4 shadow-sm">
-    <h5 class="mb-3">Moje dokumenty</h5>
+    <h5 class="mb-3">
+      {% if user.is_admin %}
+        Všetky dokumenty
+      {% else %}
+        Moje dokumenty
+      {% endif %}
+    </h5>
+
     {% if documents %}
       <div class="table-responsive">
         <table class="table align-middle">
           <thead class="table-light">
             <tr>
               <th>Názov súboru</th>
+              {% if user.is_admin %}
+                <th>Používateľ</th>
+              {% endif %}
               <th>Stiahnuť</th>
             </tr>
           </thead>
@@ -37,6 +47,11 @@
             {% for doc in documents %}
             <tr>
               <td><i class="fa fa-file-alt text-primary me-2"></i>{{ doc.filename }}</td>
+
+              {% if user.is_admin %}
+                <td>{{ doc.user_name or 'Neznámy používateľ' }}</td>
+              {% endif %}
+
               <td>
                 <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" 
                    class="btn btn-outline-success btn-sm">
