@@ -714,8 +714,6 @@ def documents():
         selected_user_name=selected_user_name,
         selected_user_id=selected_user_id
     )
-
-
 # 🧩 Nová route — Mazanie dokumentu (len admin)
 @app.route('/delete_document/<int:document_id>', methods=['POST'])
 def delete_document(document_id):
@@ -742,18 +740,19 @@ def delete_document(document_id):
         return redirect(url_for('documents', user_id=user_id))
     return redirect(url_for('documents'))
 
-    # 🧩 Route na sťahovanie dokumentov
-    @app.route('/uploads/<path:filename>')
-    def uploaded_file(filename):
-        """Sprístupní uložený dokument na stiahnutie."""
-        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-        file_path = os.path.join(upload_folder, filename)
-        
-        if not os.path.exists(file_path):
-            flash('Súbor nebol nájdený.', 'danger')
-            return redirect(url_for('documents'))
-        
-        return send_from_directory(upload_folder, filename, as_attachment=True)
+
+# ---------- DOWNLOAD DOCUMENT ----------
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """Sprístupní uložený dokument na stiahnutie."""
+    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+    file_path = os.path.join(upload_folder, filename)
+
+    if not os.path.exists(file_path):
+        flash('Súbor nebol nájdený.', 'danger')
+        return redirect(url_for('documents'))
+
+    return send_from_directory(upload_folder, filename, as_attachment=True)
 
 
 # ---------- DB INIT ----------
