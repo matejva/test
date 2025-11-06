@@ -718,11 +718,17 @@ def documents():
 @app.route('/delete_document/<int:document_id>', methods=['POST'])
 def delete_document(document_id):
     session_user = session.get('user')
-    if not session_user or not session_user.get('is_admin'):
+    if not session_user:
+        flash('Musíš byť prihlásený.', 'danger')
+        return redirect(url_for('login'))
+
+    doc = Document.query.get_or_404(document_id)
+
+    # 🔒 Povolenie len pre admina alebo vlastníka
+    if not (session_user.get('is_admin') or doc.user_id == session_user['id']):
         flash('Nemáš oprávnenie na túto akciu.', 'danger')
         return redirect(url_for('documents'))
 
-    doc = Document.query.get_or_404(document_id)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], doc.filename)
 
     try:
@@ -734,10 +740,6 @@ def delete_document(document_id):
     except Exception as e:
         flash(f'Chyba pri mazaní: {str(e)}', 'danger')
 
-    # 🔹 zachová query param ?user_id= pri návrate
-    user_id = request.args.get('user_id')
-    if user_id:
-        return redirect(url_for('documents', user_id=user_id))
     return redirect(url_for('documents'))
 
 
