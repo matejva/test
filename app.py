@@ -502,14 +502,14 @@ def export_pdf():
     selected_year = request.args.get('year', type=int)
     selected_week = request.args.get('week', type=int)
 
-    from datetime import date, datetime, timedelta
+    from datetime import date, datetime
     from sqlalchemy import func, cast, Date
 
-    # Získanie aktuálneho týždňa/roku podľa ISO
+    # ISO týždeň/rok dnes
     today = date.today()
     current_year, current_week, _ = today.isocalendar()
 
-    # Použijeme rok a týždeň – ak nie sú v URL, použijeme aktuálne
+    # Ak nie sú v URL → použijeme aktuálne
     year = selected_year or current_year
     week = selected_week or current_week
 
@@ -527,14 +527,15 @@ def export_pdf():
     if selected_project:
         query = query.filter(Record.project_id == selected_project)
 
-    # 🔹 Filtrovanie podľa typu jednotky
+    # 🔹 Filtrovanie typu jednotky (hodiny / m2)
     if unit_type_filter:
         query = query.filter(Record.unit_type == unit_type_filter)
 
-    # 🔹 VŽDY filtruj podľa ISO týždňa a roku
-    first_day = date.fromisocalendar(year, week, 1)  # pondelok
-    last_day = date.fromisocalendar(year, week, 7)   # nedeľa
-    query = query.filter(cast(Record.date, Date).between(first_day, last_day))
+    # 🔥 🔥 🔥 Najdôležitejšia oprava – presne rovnaký filter ako v UI
+    query = query.filter(
+        func.extract('isoyear', Record.date) == year,
+        func.extract('week', Record.date) == week
+    )
 
     # Výsledky
     records = query.all()
@@ -647,7 +648,6 @@ def export_pdf():
         download_name="vykonnostny_report.pdf",
         mimetype="application/pdf"
     )
-
 # ---------- USERS ----------
 @app.route('/users')
 def users_list():
