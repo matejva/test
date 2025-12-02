@@ -212,26 +212,39 @@ def dashboard():
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
 
-    # --- 🔹 Výpočet výkonu podľa dátumu - rozdelené na hodiny a m² ---
-    filtered_records = records
-    date_data_hours = {}
-    date_data_m2 = {}
-    
-    for r in filtered_records:
-        if not r.date:
-            continue
-        key = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
-    
-        if r.unit_type == "hodiny":
-            date_data_hours[key] = date_data_hours.get(key, 0) + r.amount
-        elif r.unit_type == "m2":
-            date_data_m2[key] = date_data_m2.get(key, 0) + r.amount
-    
-    chart_labels_hours = sorted(date_data_hours.keys())
-    chart_values_hours = [date_data_hours[k] for k in chart_labels_hours]
-    
-    chart_labels_m2 = sorted(date_data_m2.keys())
-    chart_values_m2 = [date_data_m2[k] for k in chart_labels_m2]
+   # --- 🔹 Výpočet výkonu podľa dátumu - rozdelené na hodiny a m² ---
+filtered_records = records
+
+date_data_hours = {}      # dátum → suma hodín
+m2_per_date = {}          # dátum → suma unikátnych projektov
+seen_m2 = set()           # (project_id, date)
+
+for r in filtered_records:
+    if not r.date:
+        continue
+
+    # Normalizácia dátumu do stringu
+    date_key = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
+
+    # --------- HODINY ---------
+    if r.unit_type == "hodiny":
+        date_data_hours[date_key] = date_data_hours.get(date_key, 0) + r.amount
+
+    # --------- M2 – UNIKÁTNE PROJEKTY ---------
+    elif r.unit_type == "m2":
+        unique_key = (r.project_id, date_key)
+
+        # pridáme len prvý výskyt projektu v daný deň
+        if unique_key not in seen_m2:
+            seen_m2.add(unique_key)
+            m2_per_date[date_key] = m2_per_date.get(date_key, 0) + r.amount
+
+# --- 🔹 Príprava grafových dát ---
+chart_labels_hours = sorted(date_data_hours.keys())
+chart_values_hours = [date_data_hours[k] for k in chart_labels_hours]
+
+chart_labels_m2 = sorted(m2_per_date.keys())
+chart_values_m2 = [m2_per_date[k] for k in chart_labels_m2]
 
     # --- 🔹 Render ---
     return render_template(
