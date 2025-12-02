@@ -546,41 +546,8 @@ def export_pdf():
 
     app.logger.info(f"🔍 Nájdených {len(filtered_records)} záznamov pre PDF export.")
 
-    # -----------------------
-    # 🧮 Delenie m²
-    # -----------------------
-
-    from collections import defaultdict
-    grouped = defaultdict(list)
-
-    for r in filtered_records:
-        key = (r.project_id, r.date)
-        grouped[key].append(r)
-
-    adjusted_records = []
-    for (_, _), recs in grouped.items():
-        m2_records = [r for r in recs if r.unit_type == "m2"]
-
-        if len(m2_records) > 1:
-            participants = len(set(r.user_id for r in m2_records))
-            for r in recs:
-                if r.unit_type == "m2":
-                    new_r = Record(
-                        user_id=r.user_id,
-                        project_id=r.project_id,
-                        date=r.date,
-                        amount=r.amount / participants,
-                        unit_type=r.unit_type,
-                        note=r.note
-                    )
-                    adjusted_records.append(new_r)
-                else:
-                    adjusted_records.append(r)
-        else:
-            adjusted_records.extend(recs)
-
-    # 🔹 Zoradenie podľa mena používateľa
-    adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
+   # 💡 Už NIČ NEDELÍME – použijeme dáta tak ako sú
+    adjusted_records = filtered_records.copy()
 
     # -----------------------
     # 🧾 GENEROVANIE PDF
