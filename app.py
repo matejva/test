@@ -213,15 +213,15 @@ def dashboard():
     unit_values = list(unit_map.values())
 
    # --- 🔹 Výpočet výkonu podľa dátumu - rozdelené na hodiny a m² ---
-filtered_records = records
-
-date_data_hours = {}      # dátum → suma hodín
-m2_per_date = {}          # dátum → suma unikátnych projektov
-seen_m2 = set()           # (project_id, date)
-
-for r in filtered_records:
-    if not r.date:
-        continue
+    filtered_records = records
+    
+    date_data_hours = {}      # dátum → suma hodín
+    m2_per_date = {}          # dátum → suma unikátnych projektov
+    seen_m2 = set()           # (project_id, date)
+    
+    for r in filtered_records:
+        if not r.date:
+            continue
 
     # Normalizácia dátumu do stringu
     date_key = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
