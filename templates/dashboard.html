@@ -184,14 +184,13 @@ body.dark-mode .btn-glass {
         <i class="fa fa-rotate-left me-1"></i> Reset
       </a>
 
-     <a href="{{ url_for('export_pdf',
+    <a href="{{ url_for('export_pdf',
         user_id=selected_user,
         project_id=selected_project,
         unit_type=unit_type_filter,
         year=selected_year,
         week=selected_week
     ) }}" class="btn btn-outline-danger ms-auto">
-             class="btn btn-outline-danger ms-auto">
         <i class="fa fa-file-pdf me-1"></i> Exportovať PDF
       </a>
 
