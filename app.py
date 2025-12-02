@@ -239,12 +239,12 @@ def dashboard():
             seen_m2.add(unique_key)
             m2_per_date[date_key] = m2_per_date.get(date_key, 0) + r.amount
 
-# --- 🔹 Príprava grafových dát ---
-chart_labels_hours = sorted(date_data_hours.keys())
-chart_values_hours = [date_data_hours[k] for k in chart_labels_hours]
-
-chart_labels_m2 = sorted(m2_per_date.keys())
-chart_values_m2 = [m2_per_date[k] for k in chart_labels_m2]
+    # --- 🔹 Príprava grafových dát ---
+    chart_labels_hours = sorted(date_data_hours.keys())
+    chart_values_hours = [date_data_hours[k] for k in chart_labels_hours]
+    
+    chart_labels_m2 = sorted(m2_per_date.keys())
+    chart_values_m2 = [m2_per_date[k] for k in chart_labels_m2]
 
     # --- 🔹 Render ---
     return render_template(
