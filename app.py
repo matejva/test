@@ -485,7 +485,7 @@ def export_pdf():
     if not user:
         return redirect(url_for('login'))
 
-    # 🟢 Registrácia TTF fontov – funguje s diakritikou
+    # 🟢 Registrácia TTF fontov – s diakritikou
     font_dir = os.path.join(app.root_path, "static", "fonts")
     try:
         pdfmetrics.registerFont(TTFont("FreeSans", os.path.join(font_dir, "FreeSans.ttf")))
@@ -495,14 +495,87 @@ def export_pdf():
         app.logger.error(f"⚠️ Nepodarilo sa načítať fonty: {e}")
         font_name = "Helvetica"
 
+    # 🧩 Filtrovanie podľa query parametrov (rovnako ako v dashboarde)
+    from sqlalchemy import func, cast, Date
+
+    selected_user = request.args.get('user_id', type=int)
+    selected_project = request.args.get('project_id', type=int)
+    unit_type_filter = request.args.get('unit_type')
+    selected_year = request.args.get('year', type=int)
+    selected_week = request.args.get('week', type=int)
+
+    from datetime import date
+    today = date.today()
+    current_year, current_week, _ = today.isocalendar()
+    year = selected_year or current_year
+    week = selected_week or current_week
+
+    query = Record.query
+
+    # 🔹 Ak nie je admin → len svoje záznamy
+    if user.get('is_admin'):
+        if selected_user:
+            query = query.filter_by(user_id=selected_user)
+    else:
+        query = query.filter_by(user_id=user['id'])
+
+    if selected_project:
+        query = query.filter_by(project_id=selected_project)
+    if unit_type_filter:
+        query = query.filter_by(unit_type=unit_type_filter)
+
+    query = query.filter(
+        func.extract('isoyear', cast(Record.date, Date)) == year
+    )
+    query = query.filter(
+        func.extract('week', cast(Record.date, Date)) == week
+    )
+
+    records = query.all()
+
+    # 🔹 Delenie m² medzi ľudí na rovnakom projekte a dátume
+    from collections import defaultdict
+    grouped = defaultdict(list)
+
+    for r in records:
+        key = (r.project_id, r.date)
+        grouped[key].append(r)
+
+    adjusted_records = []
+    for (proj_id, date_val), recs in grouped.items():
+        m2_count = sum(1 for r in recs if r.unit_type == "m2")
+        if m2_count > 1:
+            participants = len(set(r.user_id for r in recs if r.unit_type == "m2"))
+            if participants > 1:
+                for r in recs:
+                    if r.unit_type == "m2":
+                        new_r = Record(
+                            user_id=r.user_id,
+                            project_id=r.project_id,
+                            date=r.date,
+                            amount=r.amount / participants,
+                            unit_type=r.unit_type,
+                            note=r.note
+                        )
+                        adjusted_records.append(new_r)
+                    else:
+                        adjusted_records.append(r)
+            else:
+                adjusted_records.extend(recs)
+        else:
+            adjusted_records.extend(recs)
+
+    # 🔹 Zoradenie podľa používateľa
+    adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
+
+    # 🔹 Generovanie PDF
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 80
 
-    # Hlavička
     p.setFont(font_name + "-Bold", 16)
-    p.drawString(60, y, "HRC & Navate – Výkonnostný report")
+    p.drawString(60, y, "HRC & Navate – Výkonnostný report (filtrovaný)")
     y -= 20
     p.setFont(font_name, 10)
     p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
@@ -510,22 +583,19 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 25
 
-    # Hlavička tabuľky
-    p.setFont(font_name + "-Bold", 11)
     headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
     x_positions = [60, 130, 220, 350, 420, 490]
+    p.setFont(font_name + "-Bold", 11)
     for x, text in zip(x_positions, headers):
         p.drawString(x, y, text)
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 15
 
-    # Dáta
-    records = Record.query.all() if user['is_admin'] else Record.query.filter_by(user_id=user['id']).all()
     total_hours, total_m2 = 0.0, 0.0
     p.setFont(font_name, 10)
 
-    for r in records:
+    for r in adjusted_records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
         p.drawString(60, y, str(r.date))
@@ -546,14 +616,13 @@ def export_pdf():
             p.setFont(font_name, 10)
             y = height - 80
 
-    # Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
     p.setFont(font_name + "-Bold", 12)
     p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
-    p.drawString(60, y, f"Súčet m²: {total_m2:.2f}")
+    p.drawString(60, y, f"Súčet m² (delené): {total_m2:.2f}")
 
     p.save()
     buffer.seek(0)
