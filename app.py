@@ -211,8 +211,8 @@ def dashboard():
 
     unit_labels = list(unit_map.keys())
     unit_values = list(unit_map.values())
-
-   # --- 🔹 Výpočet výkonu podľa dátumu - rozdelené na hodiny a m² ---
+    
+    # --- 🔹 Výpočet výkonu podľa dátumu - rozdelené na hodiny a m² ---
     filtered_records = records
     
     date_data_hours = {}      # dátum → suma hodín
@@ -222,23 +222,23 @@ def dashboard():
     for r in filtered_records:
         if not r.date:
             continue
-
-    # Normalizácia dátumu do stringu
-    date_key = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
-
-    # --------- HODINY ---------
-    if r.unit_type == "hodiny":
-        date_data_hours[date_key] = date_data_hours.get(date_key, 0) + r.amount
-
-    # --------- M2 – UNIKÁTNE PROJEKTY ---------
-    elif r.unit_type == "m2":
-        unique_key = (r.project_id, date_key)
-
-        # pridáme len prvý výskyt projektu v daný deň
-        if unique_key not in seen_m2:
-            seen_m2.add(unique_key)
-            m2_per_date[date_key] = m2_per_date.get(date_key, 0) + r.amount
-
+    
+        # Normalizácia dátumu
+        date_key = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
+    
+        # --------- HODINY ---------
+        if r.unit_type == "hodiny":
+            date_data_hours[date_key] = date_data_hours.get(date_key, 0) + r.amount
+    
+        # --------- M2 – UNIKÁTNY PROJEKT V DEŇ ---------
+        elif r.unit_type == "m2":
+            unique_key = (r.project_id, date_key)
+    
+            # Ak ešte nebol tento projekt v tento deň pridaný → pridáme 176
+            if unique_key not in seen_m2:
+                seen_m2.add(unique_key)
+                m2_per_date[date_key] = m2_per_date.get(date_key, 0) + r.amount
+    
     # --- 🔹 Príprava grafových dát ---
     chart_labels_hours = sorted(date_data_hours.keys())
     chart_values_hours = [date_data_hours[k] for k in chart_labels_hours]
