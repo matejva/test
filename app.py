@@ -505,10 +505,11 @@ def export_pdf():
     from datetime import date, datetime, timedelta
     from sqlalchemy import func, cast, Date
 
+    # Získanie aktuálneho týždňa/roku podľa ISO
     today = date.today()
     current_year, current_week, _ = today.isocalendar()
 
-    # Rok a týždeň — ak filter nie je zadaný, použijú sa aktuálne
+    # Použijeme rok a týždeň – ak nie sú v URL, použijeme aktuálne
     year = selected_year or current_year
     week = selected_week or current_week
 
@@ -530,9 +531,9 @@ def export_pdf():
     if unit_type_filter:
         query = query.filter(Record.unit_type == unit_type_filter)
 
-    # 🔹 VŽDY filtruj podľa týždňa a roku
-    first_day = datetime.strptime(f'{year}-W{int(week)}-1', "%Y-W%W-%w").date()
-    last_day = first_day + timedelta(days=6)
+    # 🔹 VŽDY filtruj podľa ISO týždňa a roku
+    first_day = date.fromisocalendar(year, week, 1)  # pondelok
+    last_day = date.fromisocalendar(year, week, 7)   # nedeľa
     query = query.filter(cast(Record.date, Date).between(first_day, last_day))
 
     # Výsledky
