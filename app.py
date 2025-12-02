@@ -507,29 +507,35 @@ def export_pdf():
 
     today = date.today()
     current_year, current_week, _ = today.isocalendar()
+
+    # Rok a týždeň — ak filter nie je zadaný, použijú sa aktuálne
     year = selected_year or current_year
     week = selected_week or current_week
 
+    # Základný query
     query = Record.query
 
-    # 🔹 Ak nie je admin → len svoje záznamy
+    # 🔹 Filtrovanie podľa používateľa
     if user.get('is_admin'):
         if selected_user:
             query = query.filter(Record.user_id == selected_user)
     else:
         query = query.filter(Record.user_id == user['id'])
 
+    # 🔹 Filtrovanie podľa projektu
     if selected_project:
         query = query.filter(Record.project_id == selected_project)
+
+    # 🔹 Filtrovanie podľa typu jednotky
     if unit_type_filter:
         query = query.filter(Record.unit_type == unit_type_filter)
 
-    # ✅ len ak je zadaný týždeň – vypočítame dátumové rozmedzie
-    if selected_week and selected_year:
-        first_day = datetime.strptime(f'{year}-W{int(week)}-1', "%Y-W%W-%w").date()
-        last_day = first_day + timedelta(days=6)
-        query = query.filter(cast(Record.date, Date).between(first_day, last_day))
+    # 🔹 VŽDY filtruj podľa týždňa a roku
+    first_day = datetime.strptime(f'{year}-W{int(week)}-1', "%Y-W%W-%w").date()
+    last_day = first_day + timedelta(days=6)
+    query = query.filter(cast(Record.date, Date).between(first_day, last_day))
 
+    # Výsledky
     records = query.all()
     app.logger.info(f"🔍 Nájdených {len(records)} záznamov pre PDF export.")
 
@@ -542,10 +548,11 @@ def export_pdf():
         grouped[key].append(r)
 
     adjusted_records = []
-    for (proj_id, date_val), recs in grouped.items():
-        m2_participants = [r for r in recs if r.unit_type == "m2"]
-        if len(m2_participants) > 1:
-            participants = len(set(r.user_id for r in m2_participants))
+    for (_, _), recs in grouped.items():
+        m2_records = [r for r in recs if r.unit_type == "m2"]
+
+        if len(m2_records) > 1:
+            participants = len(set(r.user_id for r in m2_records))
             for r in recs:
                 if r.unit_type == "m2":
                     new_r = Record(
@@ -562,7 +569,7 @@ def export_pdf():
         else:
             adjusted_records.extend(recs)
 
-    # 🔹 Zoradenie podľa používateľa
+    # 🔹 Zoradenie podľa mena používateľa
     adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
 
     # 🧾 Generovanie PDF
@@ -574,27 +581,33 @@ def export_pdf():
     p.setFont(font_name + "-Bold", 16)
     p.drawString(60, y, "HRC & Navate – Výkonnostný report (filtrovaný)")
     y -= 20
+
     p.setFont(font_name, 10)
     p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     y -= 25
+
     p.line(50, y, width - 50, y)
     y -= 25
 
     headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
     x_positions = [60, 130, 220, 350, 420, 490]
+
     p.setFont(font_name + "-Bold", 11)
     for x, text in zip(x_positions, headers):
         p.drawString(x, y, text)
+
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 15
 
-    total_hours, total_m2 = 0.0, 0.0
+    total_hours = 0.0
+    total_m2 = 0.0
     p.setFont(font_name, 10)
 
     for r in adjusted_records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
+
         p.drawString(60, y, str(r.date))
         p.drawString(130, y, usr.name if usr else "-")
         p.drawString(220, y, proj.name if proj else "-")
@@ -608,14 +621,17 @@ def export_pdf():
 
         p.drawString(490, y, r.note or "")
         y -= 18
+
         if y < 80:
             p.showPage()
             p.setFont(font_name, 10)
             y = height - 80
 
+    # Súhrn
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
+
     p.setFont(font_name + "-Bold", 12)
     p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
