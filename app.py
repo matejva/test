@@ -477,7 +477,6 @@ def edit_project(id):
 
     return render_template('edit_project.html', project=project, user=user)
 
-
 # ---------- PDF EXPORT ----------
 @app.route('/export/pdf')
 def export_pdf():
@@ -491,11 +490,10 @@ def export_pdf():
         pdfmetrics.registerFont(TTFont("FreeSans", os.path.join(font_dir, "FreeSans.ttf")))
         pdfmetrics.registerFont(TTFont("FreeSans-Bold", os.path.join(font_dir, "FreeSansBold.ttf")))
         font_name = "FreeSans"
-    except Exception as e:
-        app.logger.error(f"⚠️ Nepodarilo sa načítať fonty: {e}")
+    except Exception:
         font_name = "Helvetica"
 
-    # 🧩 Filtrovanie podľa query parametrov
+    # 🧩 Query parametre
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
     unit_type_filter = request.args.get('unit_type')
@@ -503,7 +501,7 @@ def export_pdf():
     selected_week = request.args.get('week', type=int)
 
     from datetime import date, datetime
-    from sqlalchemy import func, cast, Date
+    from sqlalchemy import func
 
     # ISO týždeň/rok dnes
     today = date.today()
@@ -531,21 +529,31 @@ def export_pdf():
     if unit_type_filter:
         query = query.filter(Record.unit_type == unit_type_filter)
 
-    # 🔥 🔥 🔥 Najdôležitejšia oprava – presne rovnaký filter ako v UI
-    query = query.filter(
-        func.extract('isoyear', Record.date) == year,
-        func.extract('week', Record.date) == week
-    )
-
-    # Výsledky
+    # 🟡 NEFILTROVANÉ PODĽA DÁTUMU V SQL — Record.date je TEXT (!)
     records = query.all()
-    app.logger.info(f"🔍 Nájdených {len(records)} záznamov pre PDF export.")
 
-    # 🧮 Delenie m² medzi ľudí na rovnakom projekte a dátume
+    # 🔥 Python filter – identický s dashboardom
+    filtered_records = []
+    for r in records:
+        try:
+            d = datetime.strptime(r.date, "%Y-%m-%d").date()
+            y, w, _ = d.isocalendar()
+
+            if y == year and w == week:
+                filtered_records.append(r)
+        except:
+            continue
+
+    app.logger.info(f"🔍 Nájdených {len(filtered_records)} záznamov pre PDF export.")
+
+    # -----------------------
+    # 🧮 Delenie m²
+    # -----------------------
+
     from collections import defaultdict
     grouped = defaultdict(list)
 
-    for r in records:
+    for r in filtered_records:
         key = (r.project_id, r.date)
         grouped[key].append(r)
 
@@ -574,7 +582,10 @@ def export_pdf():
     # 🔹 Zoradenie podľa mena používateľa
     adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
 
-    # 🧾 Generovanie PDF
+    # -----------------------
+    # 🧾 GENEROVANIE PDF
+    # -----------------------
+
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -648,6 +659,7 @@ def export_pdf():
         download_name="vykonnostny_report.pdf",
         mimetype="application/pdf"
     )
+
 # ---------- USERS ----------
 @app.route('/users')
 def users_list():
