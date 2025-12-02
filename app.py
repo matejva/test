@@ -495,16 +495,16 @@ def export_pdf():
         app.logger.error(f"⚠️ Nepodarilo sa načítať fonty: {e}")
         font_name = "Helvetica"
 
-    # 🧩 Filtrovanie podľa query parametrov (rovnako ako v dashboarde)
-    from sqlalchemy import func, cast, Date
-
+    # 🧩 Filtrovanie podľa query parametrov
     selected_user = request.args.get('user_id', type=int)
     selected_project = request.args.get('project_id', type=int)
     unit_type_filter = request.args.get('unit_type')
     selected_year = request.args.get('year', type=int)
     selected_week = request.args.get('week', type=int)
 
-    from datetime import date
+    from datetime import date, datetime, timedelta
+    from sqlalchemy import func, cast, Date
+
     today = date.today()
     current_year, current_week, _ = today.isocalendar()
     year = selected_year or current_year
@@ -515,25 +515,25 @@ def export_pdf():
     # 🔹 Ak nie je admin → len svoje záznamy
     if user.get('is_admin'):
         if selected_user:
-            query = query.filter_by(user_id=selected_user)
+            query = query.filter(Record.user_id == selected_user)
     else:
-        query = query.filter_by(user_id=user['id'])
+        query = query.filter(Record.user_id == user['id'])
 
     if selected_project:
-        query = query.filter_by(project_id=selected_project)
+        query = query.filter(Record.project_id == selected_project)
     if unit_type_filter:
-        query = query.filter_by(unit_type=unit_type_filter)
+        query = query.filter(Record.unit_type == unit_type_filter)
 
-    query = query.filter(
-        func.extract('isoyear', cast(Record.date, Date)) == year
-    )
-    query = query.filter(
-        func.extract('week', cast(Record.date, Date)) == week
-    )
+    # ✅ len ak je zadaný týždeň – vypočítame dátumové rozmedzie
+    if selected_week and selected_year:
+        first_day = datetime.strptime(f'{year}-W{int(week)}-1', "%Y-W%W-%w").date()
+        last_day = first_day + timedelta(days=6)
+        query = query.filter(cast(Record.date, Date).between(first_day, last_day))
 
     records = query.all()
+    app.logger.info(f"🔍 Nájdených {len(records)} záznamov pre PDF export.")
 
-    # 🔹 Delenie m² medzi ľudí na rovnakom projekte a dátume
+    # 🧮 Delenie m² medzi ľudí na rovnakom projekte a dátume
     from collections import defaultdict
     grouped = defaultdict(list)
 
@@ -543,32 +543,29 @@ def export_pdf():
 
     adjusted_records = []
     for (proj_id, date_val), recs in grouped.items():
-        m2_count = sum(1 for r in recs if r.unit_type == "m2")
-        if m2_count > 1:
-            participants = len(set(r.user_id for r in recs if r.unit_type == "m2"))
-            if participants > 1:
-                for r in recs:
-                    if r.unit_type == "m2":
-                        new_r = Record(
-                            user_id=r.user_id,
-                            project_id=r.project_id,
-                            date=r.date,
-                            amount=r.amount / participants,
-                            unit_type=r.unit_type,
-                            note=r.note
-                        )
-                        adjusted_records.append(new_r)
-                    else:
-                        adjusted_records.append(r)
-            else:
-                adjusted_records.extend(recs)
+        m2_participants = [r for r in recs if r.unit_type == "m2"]
+        if len(m2_participants) > 1:
+            participants = len(set(r.user_id for r in m2_participants))
+            for r in recs:
+                if r.unit_type == "m2":
+                    new_r = Record(
+                        user_id=r.user_id,
+                        project_id=r.project_id,
+                        date=r.date,
+                        amount=r.amount / participants,
+                        unit_type=r.unit_type,
+                        note=r.note
+                    )
+                    adjusted_records.append(new_r)
+                else:
+                    adjusted_records.append(r)
         else:
             adjusted_records.extend(recs)
 
     # 🔹 Zoradenie podľa používateľa
     adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
 
-    # 🔹 Generovanie PDF
+    # 🧾 Generovanie PDF
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
