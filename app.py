@@ -9,6 +9,7 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import func, cast, Date
+from collections import defaultdict
 
 
 # ---------- CONFIG ----------
@@ -501,44 +502,41 @@ def export_pdf():
     selected_week = request.args.get('week', type=int)
 
     from datetime import date, datetime
-    from sqlalchemy import func
 
     # ISO týždeň/rok dnes
     today = date.today()
     current_year, current_week, _ = today.isocalendar()
 
-    # Ak nie sú v URL → použijeme aktuálne
     year = selected_year or current_year
     week = selected_week or current_week
 
     # Základný query
     query = Record.query
 
-    # 🔹 Filtrovanie podľa používateľa
+    # 🔹 Filter používateľ
     if user.get('is_admin'):
         if selected_user:
             query = query.filter(Record.user_id == selected_user)
     else:
         query = query.filter(Record.user_id == user['id'])
 
-    # 🔹 Filtrovanie podľa projektu
+    # 🔹 Filter projekt
     if selected_project:
         query = query.filter(Record.project_id == selected_project)
 
-    # 🔹 Filtrovanie typu jednotky (hodiny / m2)
+    # 🔹 Filter jednotky
     if unit_type_filter:
         query = query.filter(Record.unit_type == unit_type_filter)
 
-    # 🟡 NEFILTROVANÉ PODĽA DÁTUMU V SQL — Record.date je TEXT (!)
+    # ⛔ Record.date je TEXT → nefiltrovať v SQL
     records = query.all()
 
-    # 🔥 Python filter – identický s dashboardom
+    # 🔥 Python filter podľa ISO týždňa
     filtered_records = []
     for r in records:
         try:
             d = datetime.strptime(r.date, "%Y-%m-%d").date()
             y, w, _ = d.isocalendar()
-
             if y == year and w == week:
                 filtered_records.append(r)
         except:
@@ -546,8 +544,28 @@ def export_pdf():
 
     app.logger.info(f"🔍 Nájdených {len(filtered_records)} záznamov pre PDF export.")
 
-   # 💡 Už NIČ NEDELÍME – použijeme dáta tak ako sú
+    # -----------------------------------------------------
+    # ❗ Už nič nedelíme — nechávame pôvodné hodnoty
+    # -----------------------------------------------------
     adjusted_records = filtered_records.copy()
+
+    # -----------------------------------------------------
+    # 💡 Skutočný súčet m² (raz za projekt+dátum)
+    # -----------------------------------------------------
+    from collections import defaultdict
+    m2_real_sum = 0
+    grouped_m2 = defaultdict(list)
+
+    for r in adjusted_records:
+        if r.unit_type == "m2":
+            grouped_m2[(r.project_id, r.date)].append(r)
+
+    for key, recs in grouped_m2.items():
+        # všetky majú rovnaké množstvo — berieme prvý
+        m2_real_sum += recs[0].amount
+
+    # Zoradenie podľa mena
+    adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
 
     # -----------------------
     # 🧾 GENEROVANIE PDF
@@ -580,8 +598,11 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 15
 
+    # --------------------------------
+    # 📄 Riadky PDF (bez delenia m²)
+    # --------------------------------
     total_hours = 0.0
-    total_m2 = 0.0
+
     p.setFont(font_name, 10)
 
     for r in adjusted_records:
@@ -595,9 +616,9 @@ def export_pdf():
         if r.unit_type == "hodiny":
             p.drawRightString(400, y, f"{r.amount:.2f}")
             total_hours += r.amount
+
         elif r.unit_type == "m2":
-            p.drawRightString(470, y, f"{r.amount:.2f}")
-            total_m2 += r.amount
+            p.drawRightString(470, y, f"{r.amount:.2f}")   # ⬅️ NEMENÍME, NESÚČTOVO
 
         p.drawString(490, y, r.note or "")
         y -= 18
@@ -607,7 +628,7 @@ def export_pdf():
             p.setFont(font_name, 10)
             y = height - 80
 
-    # Súhrn
+    # Súhrny
     y -= 10
     p.line(50, y, width - 50, y)
     y -= 20
@@ -615,7 +636,7 @@ def export_pdf():
     p.setFont(font_name + "-Bold", 12)
     p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
     y -= 18
-    p.drawString(60, y, f"Súčet m² (delené): {total_m2:.2f}")
+    p.drawString(60, y, f"Skutočný súčet m²: {m2_real_sum:.2f}")
 
     p.save()
     buffer.seek(0)
