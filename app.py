@@ -625,51 +625,62 @@ def export_pdf():
     # --------------------------------
     # 📄 Riadky PDF (bez delenia m²)
     # --------------------------------
-    total_hours = 0.0
+   total_hours = 0.0
 
     p.setFont(font_name, 10)
+    
+    # X-pozície pre stĺpce
+    X_DATE = 50
+    X_USER = 110
+    X_PROJECT = 180
+    X_ADDRESS = 350
+    X_OPERATION = 460
+    X_HOURS = 520
+    X_M2 = 570
+    X_NOTE = 610
     
     for r in adjusted_records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
     
-        # Dátum
-        p.drawString(50, y, str(r.date))
+        # 🔹 Dátum
+        p.drawString(X_DATE, y, str(r.date))
     
-        # Používateľ
-        p.drawString(110, y, usr.name if usr else "-")
+        # 🔹 Používateľ
+        p.drawString(X_USER, y, usr.name if usr else "-")
     
-        # Projekt
-        p.drawString(200, y, proj.name if proj else "-")
+        # 🔹 Projekt
+        p.drawString(X_PROJECT, y, proj.name if proj else "-")
     
-        # Adresa
-        p.drawString(300, y, r.address or "-")
+        # 🔹 Adresa
+        p.drawString(X_ADDRESS, y, r.address or "-")
     
-        # Operácia
+        # 🔹 Operácia
         if r.unit_type == "m2":
-            if r.m2_type == "montaz":
-                op = "Montáž"
-            elif r.m2_type == "demontaz":
-                op = "Demontáž"
-            else:
-                op = "-"
+            op = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
         else:
             op = "-"
+        p.drawString(X_OPERATION, y, op)
     
-        p.drawString(380, y, op)
-    
-        # Hodiny / m²
+        # 🔹 Hodiny
         if r.unit_type == "hodiny":
-            p.drawRightString(480, y, f"{r.amount:.2f}")
+            p.drawRightString(X_HOURS + 30, y, f"{r.amount:.2f}")
             total_hours += r.amount
         else:
-            p.drawRightString(530, y, f"{r.amount:.2f}")
+            p.drawRightString(X_HOURS + 30, y, "-")
     
-        # Poznámka
-        p.drawString(540, y, r.note or "")
+        # 🔹 m²
+        if r.unit_type == "m2":
+            p.drawRightString(X_M2 + 30, y, f"{r.amount:.2f}")
+        else:
+            p.drawRightString(X_M2 + 30, y, "-")
+    
+        # 🔹 Poznámka
+        p.drawString(X_NOTE, y, r.note or "")
     
         y -= 18
     
+        # 🔄 Nová strana
         if y < 80:
             p.showPage()
             p.setFont(font_name, 10)
