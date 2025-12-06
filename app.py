@@ -11,6 +11,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import func, cast, Date
 from collections import defaultdict
 from reportlab.lib.pagesizes import landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import landscape, A4
 
 
 # ---------- CONFIG ----------
