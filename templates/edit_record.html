@@ -4,33 +4,65 @@
   <h3 class="fw-bold mb-3"><i class="fa fa-pen me-2 text-primary"></i>Upraviť záznam</h3>
 
   <form method="POST" class="card p-4 shadow-sm">
+
+    <!-- Projekt -->
     <div class="mb-3">
       <label class="form-label">Projekt</label>
       <select name="project_id" class="form-select" required>
         {% for p in projects %}
-          <option value="{{ p.id }}" {% if p.id == record.project_id %}selected{% endif %}>{{ p.name }}</option>
+          <option value="{{ p.id }}" {% if p.id == record.project_id %}selected{% endif %}>
+            {{ p.name }}
+          </option>
         {% endfor %}
       </select>
     </div>
 
+    <!-- Dátum + Jednotka + Množstvo -->
     <div class="row mb-3">
       <div class="col-md-4">
         <label class="form-label">Dátum</label>
         <input type="date" name="date" class="form-control" value="{{ record.date }}" required>
       </div>
+
       <div class="col-md-4">
         <label class="form-label">Jednotka</label>
-        <select name="unit_type" class="form-select" required>
+        <select name="unit_type" id="unit_type" class="form-select" required>
           <option value="hodiny" {% if record.unit_type == 'hodiny' %}selected{% endif %}>Hodiny</option>
           <option value="m2" {% if record.unit_type == 'm2' %}selected{% endif %}>m²</option>
         </select>
       </div>
+
       <div class="col-md-4">
         <label class="form-label">Množstvo</label>
         <input type="number" step="0.01" name="amount" class="form-control" value="{{ record.amount }}" required>
       </div>
     </div>
 
+    <!-- Adresa -->
+    <div class="mb-3">
+      <label class="form-label">Adresa</label>
+      <input type="text" name="address" class="form-control" value="{{ record.address }}">
+    </div>
+
+    <!-- Montáž / Demontáž -->
+    <div class="mb-3" id="m2-type-box" style="{% if record.unit_type != 'm2' %}display:none;{% endif %}">
+      <label class="form-label d-block mb-2">Typ m²</label>
+      <div class="d-flex gap-4">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="m2_type" id="m2_montaz"
+                 value="montáž" {% if record.m2_type == 'montáž' %}checked{% endif %}>
+          <label class="form-check-label" for="m2_montaz">Montáž</label>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="m2_type" id="m2_demontaz"
+                 value="demontáž" {% if record.m2_type == 'demontáž' %}checked{% endif %}>
+          <label class="form-check-label" for="m2_demontaz">Demontáž</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Poznámka -->
     <div class="mb-3">
       <label class="form-label">Poznámka</label>
       <input type="text" name="note" class="form-control" value="{{ record.note }}">
@@ -44,6 +76,22 @@
         <i class="fa fa-save me-1"></i> Uložiť zmeny
       </button>
     </div>
+
   </form>
 </div>
+
+<!-- JS -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const unitSelect = document.getElementById("unit_type");
+  const m2Box = document.getElementById("m2-type-box");
+
+  function updateM2Box() {
+      m2Box.style.display = unitSelect.value === "m2" ? "block" : "none";
+  }
+
+  unitSelect.addEventListener("change", updateM2Box);
+});
+</script>
+
 {% endblock %}
