@@ -627,18 +627,18 @@ def export_pdf():
     # 📄 Riadky PDF (bez delenia m²)
     # --------------------------------
     total_hours = 0.0
-
+    
     p.setFont(font_name, 10)
     
-    # X pozície optimalizované pre A4 landscape
+    # X pozície prispôsobené landscape A4
     X_DATE = 50
-    X_USER = 120
-    X_PROJECT = 220
+    X_USER = 130
+    X_PROJECT = 230
     X_ADDRESS = 380
-    X_OPERATION = 540
-    X_HOURS = 630
-    X_M2 = 700
-    X_NOTE = 760
+    X_OPERATION = 560
+    X_HOURS = 660
+    X_M2 = 720
+    X_NOTE = 770
     
     for r in adjusted_records:
         proj = Project.query.get(r.project_id)
@@ -656,7 +656,7 @@ def export_pdf():
         # 🔹 Adresa
         p.drawString(X_ADDRESS, y, r.address or "-")
     
-        # 🔹 Operácia (iba pri m2)
+        # 🔹 Operácia
         if r.unit_type == "m2":
             op = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
         else:
