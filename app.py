@@ -56,6 +56,11 @@ class Record(db.Model):
     note = db.Column(db.String(200))
     user = db.relationship("User", backref="records")
     project = db.relationship("Project", backref="records")
+     # 🆕 nové polia:
+    address = db.Column(db.String(200))
+    m2_type = db.Column(db.String(20))  # montaz/demontaz
+
+
 
 
 class Document(db.Model):
@@ -286,6 +291,8 @@ def add_record():
         unit_type = request.form.get('unit_type') # 'hodiny' alebo 'm2'
         amount_raw = request.form.get('amount', '0').strip()
         note = request.form.get('note')
+        address = request.form.get('address')
+        m2_type = request.form.get('m2_type')
 
         # základná validácia
         if unit_type not in ('hodiny', 'm2'):
@@ -304,7 +311,9 @@ def add_record():
             date=date_val,
             amount=amount,
             unit_type=unit_type,
-            note=note
+            note=note,
+            address=address,
+            m2_type=m2_type if unit_type == "m2" else None
         )
         db.session.add(rec)
         db.session.commit()
@@ -361,6 +370,8 @@ def edit_record(id):
             record.unit_type = request.form['unit_type']
             record.amount = float(request.form['amount'])
             record.note = request.form['note']
+            record.address = request.form.get('address')
+            record.m2_type = request.form.get('m2_type') if record.unit_type == "m2" else None
             db.session.commit()
             flash("Záznam bol upravený.", "success")
             return redirect(url_for('dashboard'))
