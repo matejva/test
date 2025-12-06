@@ -315,43 +315,76 @@ body.dark-mode .btn-glass {
           <h5 class="modal-title">Pridať záznam</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Projekt</label>
-            <select name="project_id" class="form-select" required>
-              {% for p in projects %}
-              <option value="{{ p.id }}">{{ p.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Dátum</label>
-            <input type="date" name="date" class="form-control" required>
-          </div>
-          <div class="col-md-3">
-            <div class="mb-3">
-              <label class="form-label d-block mb-2">Typ jednotky</label>
-              <div class="d-flex align-items-center gap-4">
+<div class="modal-body">
+
+    <!-- Projekt -->
+    <div class="mb-3">
+        <label class="form-label">Projekt</label>
+        <select name="project_id" class="form-select" required>
+            {% for p in projects %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Adresa (🆕 nové pole) -->
+    <div class="mb-3">
+        <label class="form-label">Adresa</label>
+        <input type="text" name="address" class="form-control" placeholder="Napíš adresu projektu">
+    </div>
+
+    <!-- Dátum -->
+    <div class="mb-3">
+        <label class="form-label">Dátum</label>
+        <input type="date" name="date" class="form-control" required>
+    </div>
+
+    <!-- Typ jednotky -->
+    <div class="col-md-3">
+        <div class="mb-3">
+            <label class="form-label d-block mb-2">Typ jednotky</label>
+            <div class="d-flex align-items-center gap-4">
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
-                  <label class="form-check-label" for="unit_hodiny">Hodiny</label>
+                    <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
+                    <label class="form-check-label" for="unit_hodiny">Hodiny</label>
                 </div>
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
-                  <label class="form-check-label" for="unit_m2">m²</label>
+                    <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
+                    <label class="form-check-label" for="unit_m2">m²</label>
                 </div>
-              </div>
             </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Množstvo</label>
-            <input type="number" name="amount" step="0.1" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Poznámka</label>
-            <input type="text" name="note" class="form-control">
-          </div>
         </div>
+    </div>
+
+    <!-- 🆕 Montáž / Demontáž (zobrazí sa iba pri m2) -->
+    <div class="mb-3" id="m2-type-box" style="display:none;">
+        <label class="form-label d-block">Typ práce (iba pre m²)</label>
+        <div class="d-flex gap-4">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="m2_type" value="montaz">
+                <label class="form-check-label">Montáž</label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="m2_type" value="demontaz">
+                <label class="form-check-label">Demontáž</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Množstvo -->
+    <div class="mb-3">
+        <label class="form-label">Množstvo</label>
+        <input type="number" name="amount" step="0.1" class="form-control" required>
+    </div>
+
+    <!-- Poznámka -->
+    <div class="mb-3">
+        <label class="form-label">Poznámka</label>
+        <input type="text" name="note" class="form-control">
+    </div>
+</div>
+         <!-- FOOTER -->
         <div class="modal-footer border-0">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
           <button type="submit" class="btn btn-primary">Uložiť</button>
@@ -432,6 +465,22 @@ document.addEventListener("DOMContentLoaded", () => {
   makeChart("m2Chart", "bar", "#ffca28");
   makeChart("hoursDateChart", "line", "#00bfa6", true);
   makeChart("m2DateChart", "line", "#ffca28", true);
+});
+</script>
+
+<script>
+// ⚙️ Prepínanie Montáž / Demontáž podľa typu jednotky
+function updateM2Box() {
+    const isM2 = document.getElementById("unit_m2").checked;
+    document.getElementById("m2-type-box").style.display = isM2 ? "block" : "none";
+}
+
+// Po načítaní
+updateM2Box();
+
+// Prepínanie pri zmene
+document.querySelectorAll("input[name='unit_type']").forEach(el => {
+    el.addEventListener("change", updateM2Box);
 });
 </script>
 
