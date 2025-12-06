@@ -48,17 +48,27 @@
     <div class="mb-3" id="m2-type-box" style="{% if record.unit_type != 'm2' %}display:none;{% endif %}">
       <label class="form-label d-block mb-2">Typ m²</label>
       <div class="d-flex gap-4">
+
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="m2_type" id="m2_montaz"
-                 value="montáž" {% if record.m2_type == 'montáž' %}checked{% endif %}>
+          <input class="form-check-input"
+                 type="radio"
+                 name="m2_type"
+                 id="m2_montaz"
+                 value="montaz"
+                 {% if record.m2_type == 'montaz' %}checked{% endif %}>
           <label class="form-check-label" for="m2_montaz">Montáž</label>
         </div>
 
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="m2_type" id="m2_demontaz"
-                 value="demontáž" {% if record.m2_type == 'demontáž' %}checked{% endif %}>
+          <input class="form-check-input"
+                 type="radio"
+                 name="m2_type"
+                 id="m2_demontaz"
+                 value="demontaz"
+                 {% if record.m2_type == 'demontaz' %}checked{% endif %}>
           <label class="form-check-label" for="m2_demontaz">Demontáž</label>
         </div>
+
       </div>
     </div>
 
@@ -90,6 +100,10 @@ document.addEventListener("DOMContentLoaded", () => {
       m2Box.style.display = unitSelect.value === "m2" ? "block" : "none";
   }
 
+  // pri načítaní obnov stav
+  updateM2Box();
+
+  // pri zmene jednotky
   unitSelect.addEventListener("change", updateM2Box);
 });
 </script>
