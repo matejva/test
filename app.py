@@ -625,9 +625,7 @@ def export_pdf():
     # --------------------------------
     # 📄 Riadky PDF (bez delenia m²)
     # --------------------------------
-
-   total_hours = 0.0
-
+    total_hours = 0.0
     p.setFont(font_name, 10)
 
     # X pozície
