@@ -10,6 +10,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import func, cast, Date
 from collections import defaultdict
+from reportlab.lib.pagesizes import landscape
 
 
 # ---------- CONFIG ----------
@@ -596,8 +597,8 @@ def export_pdf():
     # -----------------------
 
     buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    p = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
     y = height - 80
 
     p.setFont(font_name + "-Bold", 16)
