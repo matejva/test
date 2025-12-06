@@ -268,36 +268,63 @@ body.dark-mode .btn-glass {
             <th>Množstvo</th>
             <th>Jednotka</th>
             <th>Poznámka</th>
+            <th>Typ operácie</th>
             <th>Akcie</th>
           </tr>
         </thead>
-        <tbody>
-          {% for r in records %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.project.name if r.project else '—' }}</td>
-            {% if user.is_admin %}<td>{{ r.user.name if r.user else '—' }}</td>{% endif %}
-            <td>{{ "%.2f"|format(r.amount) }}</td>
-            <td>{{ r.unit_type or '' }}</td>
-            <td>{{ r.note or '' }}</td>
-            <td>
-              {% if user.is_admin or r.user_id == user.id %}
-              <div class="d-flex gap-2">
-                <a href="{{ url_for('edit_record', id=r.id) }}" class="btn btn-sm btn-outline-primary" title="Upraviť">
-                  <i class="fa fa-pen"></i>
-                </a>
-                <form method="POST" action="{{ url_for('delete_record', id=r.id) }}" 
-                      onsubmit="return confirm('Naozaj chceš zmazať tento záznam?');">
-                  <button class="btn btn-sm btn-outline-danger" title="Vymazať"><i class="fa fa-trash"></i></button>
-                </form>
-              </div>
-              {% else %}
-              <span class="text-muted small">–</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
+<tbody>
+  {% for r in records %}
+  <tr>
+    <td>{{ r.date }}</td>
+    <td>{{ r.project.name if r.project else '—' }}</td>
+
+    {% if user.is_admin %}
+      <td>{{ r.user.name if r.user else '—' }}</td>
+    {% endif %}
+
+    <td>{{ "%.2f"|format(r.amount) }}</td>
+    <td>{{ r.unit_type or '' }}</td>
+    <td>{{ r.note or '' }}</td>
+
+    <!-- 🆕 TYP OPERÁCIE (IBA PRE m²) -->
+    <td>
+      {% if r.unit_type == "m2" %}
+        {% if r.m2_type == "montaz" %}
+          <span class="badge bg-success">Montáž</span>
+        {% elif r.m2_type == "demontaz" %}
+          <span class="badge bg-danger">Demontáž</span>
+        {% else %}
+          <span class="text-muted">–</span>
+        {% endif %}
+      {% else %}
+        <span class="text-muted">–</span>
+      {% endif %}
+    </td>
+
+    <!-- Akcie -->
+    <td>
+      {% if user.is_admin or r.user_id == user.id %}
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('edit_record', id=r.id) }}" 
+             class="btn btn-sm btn-outline-primary" title="Upraviť">
+            <i class="fa fa-pen"></i>
+          </a>
+
+          <form method="POST" action="{{ url_for('delete_record', id=r.id) }}"
+                onsubmit="return confirm('Naozaj chceš zmazať tento záznam?');">
+            <button class="btn btn-sm btn-outline-danger" title="Vymazať">
+              <i class="fa fa-trash"></i>
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <span class="text-muted small">–</span>
+      {% endif %}
+    </td>
+
+  </tr>
+  {% endfor %}
+</tbody>
       </table>
     </div>
     {% else %}
