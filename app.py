@@ -504,6 +504,7 @@ def edit_project(id):
     return render_template('edit_project.html', project=project, user=user)
 
 # ---------- PDF EXPORT ----------
+
 @app.route('/export/pdf')
 def export_pdf():
     user = session.get('user')
@@ -528,35 +529,28 @@ def export_pdf():
 
     from datetime import date, datetime
 
-    # ISO týždeň/rok dnes
     today = date.today()
     current_year, current_week, _ = today.isocalendar()
 
     year = selected_year or current_year
     week = selected_week or current_week
 
-    # Základný query
     query = Record.query
 
-    # 🔹 Filter používateľ
     if user.get('is_admin'):
         if selected_user:
             query = query.filter(Record.user_id == selected_user)
     else:
         query = query.filter(Record.user_id == user['id'])
 
-    # 🔹 Filter projekt
     if selected_project:
         query = query.filter(Record.project_id == selected_project)
 
-    # 🔹 Filter jednotky
     if unit_type_filter:
         query = query.filter(Record.unit_type == unit_type_filter)
 
-    # ⛔ Record.date je TEXT → nefiltrovať v SQL
+    # Python filter podľa týždňa
     records = query.all()
-
-    # 🔥 Python filter podľa ISO týždňa
     filtered_records = []
     for r in records:
         try:
@@ -567,138 +561,129 @@ def export_pdf():
         except:
             continue
 
-    app.logger.info(f"🔍 Nájdených {len(filtered_records)} záznamov pre PDF export.")
-
-    # -----------------------------------------------------
-    # ❗ Už nič nedelíme — nechávame pôvodné hodnoty
-    # -----------------------------------------------------
-    adjusted_records = filtered_records.copy()
-
-    # -----------------------------------------------------
-    # 💡 Skutočný súčet m² (raz za projekt+dátum)
-    # -----------------------------------------------------
+    # Skutočný súčet m2
     from collections import defaultdict
     m2_real_sum = 0
     grouped_m2 = defaultdict(list)
 
-    for r in adjusted_records:
+    for r in filtered_records:
         if r.unit_type == "m2":
             grouped_m2[(r.project_id, r.date)].append(r)
 
     for key, recs in grouped_m2.items():
-        # všetky majú rovnaké množstvo — berieme prvý
         m2_real_sum += recs[0].amount
 
-    # Zoradenie podľa mena
-    adjusted_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
+    # Sort by user name
+    filtered_records.sort(key=lambda x: User.query.get(x.user_id).name.lower())
 
-    # -----------------------
-    # 🧾 GENEROVANIE PDF
-    # -----------------------
+    # ---------- PLATYPUS TABLE ----------
+    from reportlab.platypus import Table, TableStyle, Paragraph, SimpleDocTemplate
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.lib import colors
 
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=landscape(A4))
-    width, height = landscape(A4)
-    y = height - 80
+    styles = getSampleStyleSheet()
 
-    p.setFont(font_name + "-Bold", 16)
-    p.drawString(60, y, "HRC & Navate – Výkonnostný report (filtrovaný)")
-    y -= 20
+    styleN = styles["Normal"]
+    styleN.fontName = font_name
+    styleN.fontSize = 9
+    styleN.leading = 11
+    styleN.alignment = TA_LEFT
 
-    p.setFont(font_name, 10)
-    p.drawString(60, y, f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-    y -= 25
+    styleHeader = styles["Heading5"]
+    styleHeader.fontName = font_name + "-Bold"
+    styleHeader.fontSize = 10
+    styleHeader.leading = 12
+    styleHeader.alignment = TA_CENTER
 
-    p.line(50, y, width - 50, y)
-    y -= 25
+    # ----- HEADER -----
+    table_data = [[
+        Paragraph("Dátum", styleHeader),
+        Paragraph("Používateľ", styleHeader),
+        Paragraph("Projekt", styleHeader),
+        Paragraph("Adresa", styleHeader),
+        Paragraph("Operácia", styleHeader),
+        Paragraph("Hodiny", styleHeader),
+        Paragraph("m²", styleHeader),
+        Paragraph("Poznámka", styleHeader)
+    ]]
 
-    headers = ["Dátum", "Používateľ", "Projekt", "Adresa", "Operácia", "Hodiny", "m²", "Poznámka"]
-    x_positions = [50, 110, 200, 300, 380, 450, 500, 540]
+    total_hours = 0
 
-    p.setFont(font_name + "-Bold", 11)
-    for x, text in zip(x_positions, headers):
-        p.drawString(x, y, text)
-
-    y -= 10
-    p.line(50, y, width - 50, y)
-    y -= 15
-
-    # --------------------------------
-    # 📄 Riadky PDF (bez delenia m²)
-    # --------------------------------
-    total_hours = 0.0
-    
-    p.setFont(font_name, 10)
-    
-    # X pozície prispôsobené landscape A4
-    X_DATE = 50
-    X_USER = 130
-    X_PROJECT = 230
-    X_ADDRESS = 380
-    X_OPERATION = 560
-    X_HOURS = 660
-    X_M2 = 720
-    X_NOTE = 770
-    
-    for r in adjusted_records:
+    # ----- ROWS -----
+    for r in filtered_records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
-    
-        # 🔹 Dátum
-        p.drawString(X_DATE, y, str(r.date))
-    
-        # 🔹 Používateľ
-        p.drawString(X_USER, y, usr.name if usr else "-")
-    
-        # 🔹 Projekt
-        p.drawString(X_PROJECT, y, proj.name if proj else "-")
-    
-        # 🔹 Adresa
-        p.drawString(X_ADDRESS, y, r.address or "-")
-    
-        # 🔹 Operácia
+
         if r.unit_type == "m2":
             op = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
         else:
             op = "-"
-        p.drawString(X_OPERATION, y, op)
-    
-        # 🔹 Hodiny
+
+        table_data.append([
+            Paragraph(str(r.date), styleN),
+            Paragraph(usr.name if usr else "-", styleN),
+            Paragraph(proj.name if proj else "-", styleN),
+            Paragraph(r.address or "-", styleN),
+            Paragraph(op, styleN),
+            Paragraph(f"{r.amount:.2f}" if r.unit_type == "hodiny" else "-", styleN),
+            Paragraph(f"{r.amount:.2f}" if r.unit_type == "m2" else "-", styleN),
+            Paragraph(r.note or "", styleN)
+        ])
+
         if r.unit_type == "hodiny":
-            p.drawRightString(X_HOURS + 30, y, f"{r.amount:.2f}")
             total_hours += r.amount
-        else:
-            p.drawRightString(X_HOURS + 30, y, "-")
-    
-        # 🔹 m²
-        if r.unit_type == "m2":
-            p.drawRightString(X_M2 + 30, y, f"{r.amount:.2f}")
-        else:
-            p.drawRightString(X_M2 + 30, y, "-")
-    
-        # 🔹 Poznámka
-        p.drawString(X_NOTE, y, r.note or "")
-    
-        y -= 18
-    
-        # 🔄 Nová strana
-        if y < 80:
-            p.showPage()
-            p.setFont(font_name, 10)
-            y = height - 80
-    # Súhrny
-    y -= 10
-    p.line(50, y, width - 50, y)
-    y -= 20
 
-    p.setFont(font_name + "-Bold", 12)
-    p.drawString(60, y, f"Súčet hodín: {total_hours:.2f}")
-    y -= 18
-    p.drawString(60, y, f"Skutočný súčet m²: {m2_real_sum:.2f}")
+    # ----- TABLE -----
+    col_widths = [70, 90, 120, 150, 90, 50, 40, 150]
 
-    p.save()
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+    table.setStyle(TableStyle([
+        ('FONT', (0,0), (-1,-1), font_name, 9),
+        ('GRID', (0,0), (-1,-1), 0.3, colors.black),
+        ('ALIGN', (5,1), (6,-1), 'RIGHT'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+    ]))
+
+    # ----- PDF OUTPUT -----
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=30,
+        rightMargin=30,
+        topMargin=40,
+        bottomMargin=30
+    )
+
+    story = []
+
+    # TITLE
+    from reportlab.platypus import Spacer
+    story.append(Paragraph(
+        "<b>HRC & Navate – Výkonnostný report (filtrovaný)</b>",
+        styles["Title"]
+    ))
+    story.append(Paragraph(
+        f"Generované: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+        styleN
+    ))
+    story.append(Spacer(1, 20))
+
+    story.append(table)
+    story.append(Spacer(1, 20))
+
+    # SUMMARY
+    story.append(Paragraph(f"<b>Súčet hodín:</b> {total_hours:.2f}", styleN))
+    story.append(Paragraph(f"<b>Skutočný súčet m²:</b> {m2_real_sum:.2f}", styleN))
+
+    doc.build(story)
+
     buffer.seek(0)
-
     return send_file(
         buffer,
         as_attachment=True,
