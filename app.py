@@ -625,67 +625,67 @@ def export_pdf():
     # --------------------------------
     # 📄 Riadky PDF (bez delenia m²)
     # --------------------------------
-      # 📄 Riadky PDF – prehľadné zarovnanie
-        total_hours = 0.0
 
-        p.setFont(font_name, 10)
+   total_hours = 0.0
 
-        # X pozície
-        X_DATE = 50
-        X_USER = 110
-        X_PROJECT = 180
-        X_ADDRESS = 350
-        X_OPERATION = 460
-        X_HOURS = 520
-        X_M2 = 570
-        X_NOTE = 610
+    p.setFont(font_name, 10)
 
-        for r in adjusted_records:
-            proj = Project.query.get(r.project_id)
-            usr = User.query.get(r.user_id)
+    # X pozície
+    X_DATE = 50
+    X_USER = 110
+    X_PROJECT = 180
+    X_ADDRESS = 350
+    X_OPERATION = 460
+    X_HOURS = 520
+    X_M2 = 570
+    X_NOTE = 610
 
-            # 🔹 Dátum
-            p.drawString(X_DATE, y, str(r.date))
+    for r in adjusted_records:
+        proj = Project.query.get(r.project_id)
+        usr = User.query.get(r.user_id)
 
-            # 🔹 Používateľ
-            p.drawString(X_USER, y, usr.name if usr else "-")
+        # 🔹 Dátum
+        p.drawString(X_DATE, y, str(r.date))
 
-            # 🔹 Projekt
-            p.drawString(X_PROJECT, y, proj.name if proj else "-")
+        # 🔹 Používateľ
+        p.drawString(X_USER, y, usr.name if usr else "-")
 
-            # 🔹 Adresa
-            p.drawString(X_ADDRESS, y, r.address or "-")
+        # 🔹 Projekt
+        p.drawString(X_PROJECT, y, proj.name if proj else "-")
 
-            # 🔹 Operácia
-            if r.unit_type == "m2":
-                op = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
-            else:
-                op = "-"
-            p.drawString(X_OPERATION, y, op)
+        # 🔹 Adresa
+        p.drawString(X_ADDRESS, y, r.address or "-")
 
-            # 🔹 Hodiny
-            if r.unit_type == "hodiny":
-                p.drawRightString(X_HOURS + 30, y, f"{r.amount:.2f}")
-                total_hours += r.amount
-            else:
-                p.drawRightString(X_HOURS + 30, y, "-")
+        # 🔹 Operácia
+        if r.unit_type == "m2":
+            op = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
+        else:
+            op = "-"
+        p.drawString(X_OPERATION, y, op)
 
-            # 🔹 m²
-            if r.unit_type == "m2":
-                p.drawRightString(X_M2 + 30, y, f"{r.amount:.2f}")
-            else:
-                p.drawRightString(X_M2 + 30, y, "-")
+        # 🔹 Hodiny
+        if r.unit_type == "hodiny":
+            p.drawRightString(X_HOURS + 30, y, f"{r.amount:.2f}")
+            total_hours += r.amount
+        else:
+            p.drawRightString(X_HOURS + 30, y, "-")
 
-            # 🔹 Poznámka
-            p.drawString(X_NOTE, y, r.note or "")
+        # 🔹 m²
+        if r.unit_type == "m2":
+            p.drawRightString(X_M2 + 30, y, f"{r.amount:.2f}")
+        else:
+            p.drawRightString(X_M2 + 30, y, "-")
 
-            y -= 18
+        # 🔹 Poznámka
+        p.drawString(X_NOTE, y, r.note or "")
 
-            # 🔄 Nová strana
-            if y < 80:
-                p.showPage()
-                p.setFont(font_name, 10)
-                y = height - 80
+        y -= 18
+
+        # 🔄 Nová strana
+        if y < 80:
+            p.showPage()
+            p.setFont(font_name, 10)
+            y = height - 80
     # Súhrny
     y -= 10
     p.line(50, y, width - 50, y)
