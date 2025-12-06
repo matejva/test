@@ -669,7 +669,7 @@ def export_pdf():
     # TITLE
     from reportlab.platypus import Spacer
     story.append(Paragraph(
-        "<b>HRC & Navate – Výkonnostný report (filtrovaný)</b>",
+        "<b>RHC & Navate – Výkonnostný report (filtrovaný)</b>",
         styles["Title"]
     ))
     story.append(Paragraph(
