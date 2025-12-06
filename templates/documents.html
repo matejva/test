@@ -33,53 +33,70 @@
       {% endif %}
     </h5>
 
-    {% if documents %}
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Názov súboru</th>
-              {% if user.is_admin %}
-                <th>Používateľ</th>
-              {% endif %}
-              <th>Akcie</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for doc in documents %}
-            <tr>
-              <td><i class="fa fa-file-alt text-primary me-2"></i>{{ doc.filename }}</td>
+{% if documents %}
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead class="table-light">
+      <tr>
+        <th><i class="fa fa-file me-1"></i> Názov súboru</th>
 
-              {% if user.is_admin %}
-                <td>{{ doc.user_name or 'Neznámy používateľ' }}</td>
-              {% endif %}
+        {% if user.is_admin %}
+        <th><i class="fa fa-user me-1"></i> Používateľ</th>
+        {% endif %}
 
-              <td class="d-flex gap-2">
-                <!-- 🟢 Stiahnuť -->
-                <a href="{{ url_for('uploaded_file', filename=doc.filename) }}" 
-                   class="btn btn-outline-success btn-sm">
-                   <i class="fa fa-download me-1"></i> Stiahnuť
-                </a>
+        <th class="text-end">Akcie</th>
+      </tr>
+    </thead>
 
-                <!-- 🔴 Vymazať (admin alebo vlastník) -->
-                {% if user.is_admin or doc.user_id == user.id %}
-                <form method="POST" 
-                      action="{{ url_for('delete_document', document_id=doc.id, user_id=selected_user_id) }}"
-                      onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');">
-                  <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="fa fa-trash"></i> Vymazať
-                  </button>
-                </form>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="text-muted">Zatiaľ nemáte žiadne nahrané dokumenty.</p>
-    {% endif %}
+    <tbody>
+      {% for doc in documents %}
+      <tr>
+        <!-- Názov súboru -->
+        <td>
+          <i class="fa fa-file-alt text-primary me-2"></i>
+          {{ doc.filename }}
+        </td>
+
+        <!-- Používateľ (iba admin) -->
+        {% if user.is_admin %}
+        <td>
+          <span class="badge bg-secondary">
+            {{ doc.user_name or 'Neznámy používateľ' }}
+          </span>
+        </td>
+        {% endif %}
+
+        <!-- Akcie -->
+        <td class="text-end d-flex justify-content-end gap-2">
+          <!-- 🟢 Stiahnuť -->
+          <a href="{{ url_for('uploaded_file', filename=doc.filename) }}"
+             class="btn btn-outline-success btn-sm">
+            <i class="fa fa-download me-1"></i> Stiahnuť
+          </a>
+
+          <!-- 🔴 Vymazať -->
+          {% if user.is_admin or doc.user_id == user.id %}
+          <form method="POST"
+                action="{{ url_for('delete_document', document_id=doc.id, user_id=selected_user_id) }}"
+                onsubmit="return confirm('Naozaj chceš odstrániť dokument {{ doc.filename }}?');">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+              <i class="fa fa-trash"></i> Vymazať
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<p class="text-muted">
+  <i class="fa fa-info-circle me-1"></i>
+  Zatiaľ nemáte žiadne nahrané dokumenty.
+</p>
+{% endif %}
   </div>
 </div>
 {% endblock %}
