@@ -611,8 +611,8 @@ def export_pdf():
     p.line(50, y, width - 50, y)
     y -= 25
 
-    headers = ["Dátum", "Používateľ", "Projekt", "Hodiny", "m²", "Poznámka"]
-    x_positions = [60, 130, 220, 350, 420, 490]
+    headers = ["Dátum", "Používateľ", "Projekt", "Adresa", "Operácia", "Hodiny", "m²", "Poznámka"]
+    x_positions = [50, 110, 200, 300, 380, 450, 500, 540]
 
     p.setFont(font_name + "-Bold", 11)
     for x, text in zip(x_positions, headers):
@@ -628,25 +628,48 @@ def export_pdf():
     total_hours = 0.0
 
     p.setFont(font_name, 10)
-
+    
     for r in adjusted_records:
         proj = Project.query.get(r.project_id)
         usr = User.query.get(r.user_id)
-
-        p.drawString(60, y, str(r.date))
-        p.drawString(130, y, usr.name if usr else "-")
-        p.drawString(220, y, proj.name if proj else "-")
-
+    
+        # Dátum
+        p.drawString(50, y, str(r.date))
+    
+        # Používateľ
+        p.drawString(110, y, usr.name if usr else "-")
+    
+        # Projekt
+        p.drawString(200, y, proj.name if proj else "-")
+    
+        # Adresa
+        p.drawString(300, y, r.address or "-")
+    
+        # Operácia
+        if r.unit_type == "m2":
+            if r.m2_type == "montaz":
+                op = "Montáž"
+            elif r.m2_type == "demontaz":
+                op = "Demontáž"
+            else:
+                op = "-"
+        else:
+            op = "-"
+    
+        p.drawString(380, y, op)
+    
+        # Hodiny / m²
         if r.unit_type == "hodiny":
-            p.drawRightString(400, y, f"{r.amount:.2f}")
+            p.drawRightString(480, y, f"{r.amount:.2f}")
             total_hours += r.amount
-
-        elif r.unit_type == "m2":
-            p.drawRightString(470, y, f"{r.amount:.2f}")   # ⬅️ NEMENÍME, NESÚČTOVO
-
-        p.drawString(490, y, r.note or "")
+        else:
+            p.drawRightString(530, y, f"{r.amount:.2f}")
+    
+        # Poznámka
+        p.drawString(540, y, r.note or "")
+    
         y -= 18
-
+    
         if y < 80:
             p.showPage()
             p.setFont(font_name, 10)
