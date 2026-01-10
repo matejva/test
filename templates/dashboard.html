@@ -342,83 +342,87 @@ body.dark-mode .btn-glass {
           <h5 class="modal-title">Pridať záznam</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
+        
 <div class="modal-body">
 
-    <!-- Projekt -->
-    <div class="mb-3">
-        <label class="form-label">Projekt</label>
-        <select name="project_id" class="form-select" required>
-            {% for p in projects %}
-            <option value="{{ p.id }}">{{ p.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+  <!-- Projekt -->
+  <div class="mb-3">
+    <label class="form-label">Projekt</label>
+    <select name="project_id" class="form-select" required>
+      {% for p in projects %}
+      <option value="{{ p.id }}">{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
-    <!-- Adresa (🆕 nové pole) -->
-    <div class="mb-3">
+  <!-- 📍 Blok adries -->
+  <div id="addresses-wrapper">
+    <div class="address-block border rounded p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>Adresa 1</strong>
+      </div>
+
+      <!-- Adresa -->
+      <div class="mb-2">
         <label class="form-label">Adresa</label>
-        <input type="text" name="address" class="form-control" placeholder="Napíš adresu projektu">
-    </div>
+        <input type="text" name="addresses[0][address]" class="form-control" placeholder="Napíš adresu projektu">
+      </div>
 
-    <!-- Dátum -->
-    <div class="mb-3">
+      <!-- Dátum -->
+      <div class="mb-2">
         <label class="form-label">Dátum</label>
-        <input type="date" name="date" class="form-control" required>
-    </div>
+        <input type="date" name="addresses[0][date]" class="form-control" required>
+      </div>
 
-    <!-- Typ jednotky -->
-    <div class="col-md-3">
-        <div class="mb-3">
-            <label class="form-label d-block mb-2">Typ jednotky</label>
-            <div class="d-flex align-items-center gap-4">
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="unit_type" id="unit_hodiny" value="hodiny" checked>
-                    <label class="form-check-label" for="unit_hodiny">Hodiny</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="unit_type" id="unit_m2" value="m2">
-                    <label class="form-check-label" for="unit_m2">m²</label>
-                </div>
-            </div>
+      <!-- Typ jednotky -->
+      <div class="mb-2">
+        <label class="form-label">Typ jednotky</label>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input unit-type-radio" type="radio" name="addresses[0][unit_type]" value="hodiny" checked>
+            <label class="form-check-label">Hodiny</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input unit-type-radio" type="radio" name="addresses[0][unit_type]" value="m2">
+            <label class="form-check-label">m²</label>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- 🆕 Montáž / Demontáž (zobrazí sa iba pri m2) -->
-    <div class="mb-3" id="m2-type-box" style="display:none;">
-        <label class="form-label d-block">Typ práce (iba pre m²)</label>
-        <div class="d-flex gap-4">
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="m2_type" value="montaz">
-                <label class="form-check-label">Montáž</label>
-            </div>
-
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="m2_type" value="demontaz">
-                <label class="form-check-label">Demontáž</label>
-            </div>
+      <!-- Montáž / Demontáž (len pri m²) -->
+      <div class="mb-2 m2-type-box" style="display:none;">
+        <label class="form-label">Typ práce (iba pre m²)</label>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="addresses[0][m2_type]" value="montaz">
+            <label class="form-check-label">Montáž</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="addresses[0][m2_type]" value="demontaz">
+            <label class="form-check-label">Demontáž</label>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Množstvo -->
-    <div class="mb-3">
+      <!-- Množstvo -->
+      <div class="mb-2">
         <label class="form-label">Množstvo</label>
-        <input type="number" name="amount" step="0.1" class="form-control" required>
-    </div>
+        <input type="number" name="addresses[0][amount]" step="0.1" class="form-control" required>
+      </div>
 
-    <!-- Poznámka -->
-    <div class="mb-3">
+      <!-- Poznámka -->
+      <div class="mb-2">
         <label class="form-label">Poznámka</label>
-        <input type="text" name="note" class="form-control">
-    </div>
-</div>
-         <!-- FOOTER -->
-        <div class="modal-footer border-0">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušiť</button>
-          <button type="submit" class="btn btn-primary">Uložiť</button>
-        </div>
-      </form>
+        <input type="text" name="addresses[0][note]" class="form-control" placeholder="Poznámka (nepovinné)">
+      </div>
     </div>
   </div>
+
+  <!-- ➕ Pridať ďalšiu adresu -->
+  <button type="button" id="add-address-btn" class="btn btn-outline-success btn-sm">
+    <i class="fa fa-plus"></i> Pridať ďalšiu adresu
+  </button>
+
 </div>
 
 <!-- JS -->
@@ -508,6 +512,103 @@ updateM2Box();
 // Prepínanie pri zmene
 document.querySelectorAll("input[name='unit_type']").forEach(el => {
     el.addEventListener("change", updateM2Box);
+});
+</script>
+<script>
+let addressCount = 1;
+const maxAddresses = 5;
+const wrapper = document.getElementById('addresses-wrapper');
+const addBtn = document.getElementById('add-address-btn');
+
+addBtn.addEventListener('click', () => {
+  if (addressCount >= maxAddresses) {
+    alert("Maximálne 5 adries.");
+    return;
+  }
+  const idx = addressCount;
+  const block = document.createElement('div');
+  block.className = 'address-block border rounded p-3 mb-3';
+  block.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong>Adresa ${idx + 1}</strong>
+      <button type="button" class="btn btn-sm btn-outline-danger remove-address">
+        <i class="fa fa-trash"></i>
+      </button>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Adresa</label>
+      <input type="text" name="addresses[${idx}][address]" class="form-control" placeholder="Napíš adresu projektu">
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Dátum</label>
+      <input type="date" name="addresses[${idx}][date]" class="form-control" required>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Typ jednotky</label>
+      <div class="d-flex gap-3">
+        <div class="form-check">
+          <input class="form-check-input unit-type-radio" type="radio" name="addresses[${idx}][unit_type]" value="hodiny" checked>
+          <label class="form-check-label">Hodiny</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input unit-type-radio" type="radio" name="addresses[${idx}][unit_type]" value="m2">
+          <label class="form-check-label">m²</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-2 m2-type-box" style="display:none;">
+      <label class="form-label">Typ práce (iba pre m²)</label>
+      <div class="d-flex gap-3">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="addresses[${idx}][m2_type]" value="montaz">
+          <label class="form-check-label">Montáž</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="addresses[${idx}][m2_type]" value="demontaz">
+          <label class="form-check-label">Demontáž</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Množstvo</label>
+      <input type="number" name="addresses[${idx}][amount]" step="0.1" class="form-control" required>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Poznámka</label>
+      <input type="text" name="addresses[${idx}][note]" class="form-control" placeholder="Poznámka (nepovinné)">
+    </div>
+  `;
+
+  wrapper.appendChild(block);
+  addressCount++;
+
+  // Prepínanie zobrazenia Montáž/Demontáž pre každý blok
+  block.querySelectorAll(".unit-type-radio").forEach(radio => {
+    radio.addEventListener("change", () => {
+      const box = block.querySelector(".m2-type-box");
+      box.style.display = block.querySelector("input[value='m2']").checked ? "block" : "none";
+    });
+  });
+
+  // Odstránenie bloku adresy
+  block.querySelector(".remove-address").addEventListener("click", () => {
+    block.remove();
+    addressCount--;
+  });
+});
+
+// Aktivácia prepínača pre prvý blok
+document.querySelectorAll(".unit-type-radio").forEach(radio => {
+  radio.addEventListener("change", () => {
+    const box = radio.closest(".address-block").querySelector(".m2-type-box");
+    box.style.display = radio.value === "m2" ? "block" : "none";
+  });
 });
 </script>
 
