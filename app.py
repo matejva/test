@@ -64,6 +64,7 @@ class Record(db.Model):
      # 🆕 nové polia:
     address = db.Column(db.String(200))
     m2_type = db.Column(db.String(20))  # montaz/demontaz
+    address = db.Column(db.String(255))
 
 
 
@@ -291,38 +292,77 @@ def add_record():
         return redirect(url_for('login'))
 
     try:
-        project_id = int(request.form['project_id'])
-        date_val = request.form['date']           # 'YYYY-MM-DD' string – u nás je date = String(20), OK
-        unit_type = request.form.get('unit_type') # 'hodiny' alebo 'm2'
-        amount_raw = request.form.get('amount', '0').strip()
-        note = request.form.get('note')
-        address = request.form.get('address')
-        m2_type = request.form.get('m2_type')
+        project_id = int(request.form.get('project_id'))
+        saved_count = 0
 
-        # základná validácia
-        if unit_type not in ('hodiny', 'm2'):
-            flash("Zvoľ typ jednotky (hodiny alebo m²).", "danger")
-            return redirect(url_for('dashboard'))
+        # 🟢 Zistíme, či ide o nový formát s viacerými adresami
+        if any(k.startswith("addresses[") for k in request.form.keys()):
+            # Viacero blokov
+            addresses = []
 
-        try:
-            amount = float(amount_raw)
-        except ValueError:
-            flash("Množstvo musí byť číslo.", "danger")
-            return redirect(url_for('dashboard'))
+            # Načítame všetky adresy z request.form
+            for key in request.form.keys():
+                if key.startswith("addresses["):
+                    parts = key.split("][")
+                    index = int(parts[0].split("[")[1])
+                    field = parts[1].replace("]", "")
+                    while len(addresses) <= index:
+                        addresses.append({})
+                    addresses[index][field] = request.form.get(key)
 
-        rec = Record(
-            user_id=session_user['id'],
-            project_id=project_id,
-            date=date_val,
-            amount=amount,
-            unit_type=unit_type,
-            note=note,
-            address=address,
-            m2_type=m2_type if unit_type == "m2" else None
-        )
-        db.session.add(rec)
+            # Spracuj každý blok ako samostatný Record
+            for data in addresses:
+                if not data.get("date") or not data.get("amount"):
+                    continue
+
+                try:
+                    amount = float(data.get("amount", 0))
+                except ValueError:
+                    continue
+
+                new_record = Record(
+                    user_id=session_user['id'],
+                    project_id=project_id,
+                    date=data.get("date"),
+                    unit_type=data.get("unit_type"),
+                    m2_type=data.get("m2_type") if data.get("unit_type") == "m2" else None,
+                    amount=amount,
+                    note=data.get("note"),
+                    address=data.get("address")
+                )
+                db.session.add(new_record)
+                saved_count += 1
+
+        else:
+            # 🔵 Starý formát – len jeden záznam (spätná kompatibilita)
+            date_val = request.form.get('date')
+            unit_type = request.form.get('unit_type')
+            amount_raw = request.form.get('amount', '0').strip()
+            note = request.form.get('note')
+            address = request.form.get('address')
+            m2_type = request.form.get('m2_type')
+
+            try:
+                amount = float(amount_raw)
+            except ValueError:
+                flash("Množstvo musí byť číslo.", "danger")
+                return redirect(url_for('dashboard'))
+
+            rec = Record(
+                user_id=session_user['id'],
+                project_id=project_id,
+                date=date_val,
+                amount=amount,
+                unit_type=unit_type,
+                note=note,
+                address=address,
+                m2_type=m2_type if unit_type == "m2" else None
+            )
+            db.session.add(rec)
+            saved_count = 1
+
         db.session.commit()
-        flash("✅ Záznam bol pridaný!", "success")
+        flash(f"✅ {saved_count} záznam(ov) bolo úspešne pridaných!", "success")
 
     except Exception as e:
         app.logger.exception("Chyba pri pridávaní záznamu")
