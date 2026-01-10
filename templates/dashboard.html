@@ -335,94 +335,108 @@ body.dark-mode .btn-glass {
 
 <!-- Modal Add Record -->
 <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content glass-card">
       <form method="POST" action="{{ url_for('add_record') }}">
         <div class="modal-header border-0">
           <h5 class="modal-title">Pridať záznam</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        
-<div class="modal-body">
 
-  <!-- Projekt -->
-  <div class="mb-3">
-    <label class="form-label">Projekt</label>
-    <select name="project_id" class="form-select" required>
-      {% for p in projects %}
-      <option value="{{ p.id }}">{{ p.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
+        <div class="modal-body">
 
-  <!-- 📍 Blok adries -->
-  <div id="addresses-wrapper">
-    <div class="address-block border rounded p-3 mb-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <strong>Adresa 1</strong>
-      </div>
-
-      <!-- Adresa -->
-      <div class="mb-2">
-        <label class="form-label">Adresa</label>
-        <input type="text" name="addresses[0][address]" class="form-control" placeholder="Napíš adresu projektu">
-      </div>
-
-      <!-- Dátum -->
-      <div class="mb-2">
-        <label class="form-label">Dátum</label>
-        <input type="date" name="addresses[0][date]" class="form-control" required>
-      </div>
-
-      <!-- Typ jednotky -->
-      <div class="mb-2">
-        <label class="form-label">Typ jednotky</label>
-        <div class="d-flex gap-3">
-          <div class="form-check">
-            <input class="form-check-input unit-type-radio" type="radio" name="addresses[0][unit_type]" value="hodiny" checked>
-            <label class="form-check-label">Hodiny</label>
+          <!-- Projekt -->
+          <div class="mb-3">
+            <label class="form-label">Projekt</label>
+            <select name="project_id" class="form-select" required>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
           </div>
-          <div class="form-check">
-            <input class="form-check-input unit-type-radio" type="radio" name="addresses[0][unit_type]" value="m2">
-            <label class="form-check-label">m²</label>
+
+          <!-- 📍 Blok adries -->
+          <div id="addresses-wrapper">
+            <div class="address-block border rounded p-3 mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Adresa 1</strong>
+              </div>
+
+              <!-- Adresa -->
+              <div class="mb-2">
+                <label class="form-label">Adresa</label>
+                <input type="text" name="addresses[0][address]" class="form-control" placeholder="Napíš adresu projektu">
+              </div>
+
+              <!-- Dátum -->
+              <div class="mb-2">
+                <label class="form-label">Dátum</label>
+                <input type="date" name="addresses[0][date]" class="form-control" required>
+              </div>
+
+              <!-- Typ jednotky -->
+              <div class="mb-2">
+                <label class="form-label">Typ jednotky</label>
+                <div class="d-flex gap-3">
+                  <div class="form-check">
+                    <input class="form-check-input unit-type-radio" type="radio" name="addresses[0][unit_type]" value="hodiny" checked>
+                    <label class="form-check-label">Hodiny</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input unit-type-radio" type="radio" name="addresses[0][unit_type]" value="m2">
+                    <label class="form-check-label">m²</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Montáž / Demontáž (len pri m²) -->
+              <div class="mb-2 m2-type-box" style="display:none;">
+                <label class="form-label">Typ práce (iba pre m²)</label>
+                <div class="d-flex gap-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="addresses[0][m2_type]" value="montaz">
+                    <label class="form-check-label">Montáž</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="addresses[0][m2_type]" value="demontaz">
+                    <label class="form-check-label">Demontáž</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Množstvo -->
+              <div class="mb-2">
+                <label class="form-label">Množstvo</label>
+                <input type="number" name="addresses[0][amount]" step="0.1" class="form-control" required>
+              </div>
+
+              <!-- Poznámka -->
+              <div class="mb-2">
+                <label class="form-label">Poznámka</label>
+                <input type="text" name="addresses[0][note]" class="form-control" placeholder="Poznámka (nepovinné)">
+              </div>
+            </div>
           </div>
+
+          <!-- ➕ Pridať ďalšiu adresu -->
+          <button type="button" id="add-address-btn" class="btn btn-outline-success btn-sm">
+            <i class="fa fa-plus"></i> Pridať ďalšiu adresu
+          </button>
+
+        </div> <!-- /modal-body -->
+
+        <!-- FOOTER -->
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Zrušiť
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa fa-save me-1"></i> Uložiť záznamy
+          </button>
         </div>
-      </div>
-
-      <!-- Montáž / Demontáž (len pri m²) -->
-      <div class="mb-2 m2-type-box" style="display:none;">
-        <label class="form-label">Typ práce (iba pre m²)</label>
-        <div class="d-flex gap-3">
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="addresses[0][m2_type]" value="montaz">
-            <label class="form-check-label">Montáž</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="addresses[0][m2_type]" value="demontaz">
-            <label class="form-check-label">Demontáž</label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Množstvo -->
-      <div class="mb-2">
-        <label class="form-label">Množstvo</label>
-        <input type="number" name="addresses[0][amount]" step="0.1" class="form-control" required>
-      </div>
-
-      <!-- Poznámka -->
-      <div class="mb-2">
-        <label class="form-label">Poznámka</label>
-        <input type="text" name="addresses[0][note]" class="form-control" placeholder="Poznámka (nepovinné)">
-      </div>
+      </form>
     </div>
   </div>
-
-  <!-- ➕ Pridať ďalšiu adresu -->
-  <button type="button" id="add-address-btn" class="btn btn-outline-success btn-sm">
-    <i class="fa fa-plus"></i> Pridať ďalšiu adresu
-  </button>
-
 </div>
 
 <!-- JS -->
