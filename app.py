@@ -834,60 +834,79 @@ def delete_user(user_id):
     flash("🗑️ Používateľ bol odstránený.", "success")
     return redirect(url_for('users_list'))
 
+# ---------- ADMIN CALENDAR ----------
 @app.route('/admin/calendar', methods=['GET', 'POST'])
-@login_required
-@admin_required
 def admin_calendar():
+    session_user = session.get('user')
+    if not session_user:
+        return redirect(url_for('login'))
+
+    if not session_user.get('is_admin'):
+        flash("Nemáš oprávnenie zobraziť admin kalendár.", "danger")
+        return redirect(url_for('dashboard'))
+
+    import calendar
+    from datetime import date
+
     if request.method == 'POST':
         note_date_str = request.form.get('note_date')
-        note_text = request.form.get('note', '').strip()
-
-        if note_date_str:
-            note_date = datetime.strptime(note_date_str, '%Y-%m-%d').date()
-            existing = AdminCalendarNote.query.filter_by(note_date=note_date).first()
-
-            if existing:
-                existing.note = note_text
-                existing.created_by = current_user.id
-            else:
-                new_note = AdminCalendarNote(
-                    note_date=note_date,
-                    note=note_text,
-                    created_by=current_user.id
-                )
-                db.session.add(new_note)
-
-            db.session.commit()
-            flash('Poznámka uložená', 'success')
-
+        note_text = (request.form.get('note') or '').strip()
         year = request.form.get('year', type=int)
         month = request.form.get('month', type=int)
+
+        if not note_date_str:
+            flash("Chýba dátum poznámky.", "danger")
+            return redirect(url_for('admin_calendar', year=year, month=month))
+
+        try:
+            note_date = datetime.strptime(note_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Neplatný dátum.", "danger")
+            return redirect(url_for('admin_calendar', year=year, month=month))
+
+        existing_note = AdminCalendarNote.query.filter_by(note_date=note_date).first()
+
+        if existing_note:
+            existing_note.note = note_text
+            existing_note.created_by = session_user['id']
+        else:
+            new_note = AdminCalendarNote(
+                note_date=note_date,
+                note=note_text,
+                created_by=session_user['id']
+            )
+            db.session.add(new_note)
+
+        db.session.commit()
+        flash("Poznámka bola uložená.", "success")
         return redirect(url_for('admin_calendar', year=year, month=month))
 
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
 
-    today = datetime.utcnow().date()
+    today = date.today()
     if not year:
         year = today.year
     if not month:
         month = today.month
 
-    cal = calendar.Calendar(firstweekday=0)  # pondelok môžeš dať aj 0/1 podľa preferencie
-    month_days = list(cal.monthdatescalendar(year, month))
+    cal = calendar.Calendar(firstweekday=0)
+    month_days = cal.monthdatescalendar(year, month)
 
-    start_day = month_days[0][0]
-    end_day = month_days[-1][-1]
+    all_days = [day for week in month_days for day in week]
+    start_date = min(all_days)
+    end_date = max(all_days)
 
     notes = AdminCalendarNote.query.filter(
-        AdminCalendarNote.note_date >= start_day,
-        AdminCalendarNote.note_date <= end_day
+        AdminCalendarNote.note_date >= start_date,
+        AdminCalendarNote.note_date <= end_date
     ).all()
 
-    notes_by_date = {n.note_date: n for n in notes}
+    notes_by_date = {note.note_date: note for note in notes}
 
     return render_template(
         'admin_calendar.html',
+        user=session_user,
         month_days=month_days,
         notes_by_date=notes_by_date,
         year=year,
