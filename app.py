@@ -75,6 +75,13 @@ class Document(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     filename = db.Column(db.String(200))
     user = db.relationship("User", backref="documents")
+    
+class AdminCalendarNote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    note_date = db.Column(db.Date, nullable=False, unique=True)
+    note = db.Column(db.Text, nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # ---------- ROUTES ----------
