@@ -833,6 +833,67 @@ def delete_user(user_id):
     db.session.commit()
     flash("🗑️ Používateľ bol odstránený.", "success")
     return redirect(url_for('users_list'))
+
+@app.route('/admin/calendar', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_calendar():
+    if request.method == 'POST':
+        note_date_str = request.form.get('note_date')
+        note_text = request.form.get('note', '').strip()
+
+        if note_date_str:
+            note_date = datetime.strptime(note_date_str, '%Y-%m-%d').date()
+            existing = AdminCalendarNote.query.filter_by(note_date=note_date).first()
+
+            if existing:
+                existing.note = note_text
+                existing.created_by = current_user.id
+            else:
+                new_note = AdminCalendarNote(
+                    note_date=note_date,
+                    note=note_text,
+                    created_by=current_user.id
+                )
+                db.session.add(new_note)
+
+            db.session.commit()
+            flash('Poznámka uložená', 'success')
+
+        year = request.form.get('year', type=int)
+        month = request.form.get('month', type=int)
+        return redirect(url_for('admin_calendar', year=year, month=month))
+
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+
+    today = datetime.utcnow().date()
+    if not year:
+        year = today.year
+    if not month:
+        month = today.month
+
+    cal = calendar.Calendar(firstweekday=0)  # pondelok môžeš dať aj 0/1 podľa preferencie
+    month_days = list(cal.monthdatescalendar(year, month))
+
+    start_day = month_days[0][0]
+    end_day = month_days[-1][-1]
+
+    notes = AdminCalendarNote.query.filter(
+        AdminCalendarNote.note_date >= start_day,
+        AdminCalendarNote.note_date <= end_day
+    ).all()
+
+    notes_by_date = {n.note_date: n for n in notes}
+
+    return render_template(
+        'admin_calendar.html',
+        month_days=month_days,
+        notes_by_date=notes_by_date,
+        year=year,
+        month=month,
+        today=today
+    )
     
 # ---------- DOCUMENTS ----------
 @app.route('/documents', methods=['GET', 'POST'])
