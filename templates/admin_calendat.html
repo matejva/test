@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">🗓️ Admin kalendár</h2>
+  <form method="get" class="row g-2">
+    <div class="col-auto">
+      <input type="number" name="year" class="form-control" value="{{ year }}">
+    </div>
+    <div class="col-auto">
+      <input type="number" name="month" min="1" max="12" class="form-control" value="{{ month }}">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Zobraziť</button>
+    </div>
+  </form>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle text-center">
+        <thead class="table-primary">
+          <tr>
+            <th>Pon</th>
+            <th>Uto</th>
+            <th>Str</th>
+            <th>Štv</th>
+            <th>Pia</th>
+            <th>Sob</th>
+            <th>Ned</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in month_days %}
+          <tr>
+            {% for day in week %}
+            {% set day_note = notes_by_date.get(day) %}
+            <td class="{% if day.month != month %}bg-light text-muted{% endif %}" style="height: 140px; vertical-align: top;">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <strong {% if day == today %}class="text-primary"{% endif %}>{{ day.day }}</strong>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#noteModal"
+                  data-date="{{ day.isoformat() }}"
+                  data-note="{{ day_note.note if day_note else '' }}"
+                >
+                  ✏️
+                </button>
+              </div>
+
+              <div class="small text-start">
+                {% if day_note and day_note.note %}
+                  {{ day_note.note[:120] }}{% if day_note.note|length > 120 %}...{% endif %}
+                {% else %}
+                  <span class="text-muted">Bez poznámky</span>
+                {% endif %}
+              </div>
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="noteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Poznámka ku dňu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="note_date" id="modalNoteDate">
+        <input type="hidden" name="year" value="{{ year }}">
+        <input type="hidden" name="month" value="{{ month }}">
+
+        <div class="mb-3">
+          <label class="form-label">Dátum</label>
+          <input type="text" id="modalDateDisplay" class="form-control" disabled>
+        </div>
+
+        <div class="mb-3">
+          <label for="modalNoteText" class="form-label">Poznámka</label>
+          <textarea name="note" id="modalNoteText" class="form-control" rows="5"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Uložiť</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const noteModal = document.getElementById('noteModal');
+  noteModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const date = button.getAttribute('data-date');
+    const note = button.getAttribute('data-note');
+
+    document.getElementById('modalNoteDate').value = date;
+    document.getElementById('modalDateDisplay').value = date;
+    document.getElementById('modalNoteText').value = note;
+  });
+</script>
+
+{% endblock %}
