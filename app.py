@@ -1193,7 +1193,7 @@ def delete_document(document_id):
         flash(f'Chyba pri mazaní: {str(e)}', 'danger')
 
     return redirect(url_for('documents'))
--------------------------PDF PRE PARTIU-----------------------
+#-------------------------PDF PRE PARTIU-----------------------
 @app.route('/crews/<int:crew_week_id>/pdf')
 def export_crew_pdf(crew_week_id):
     session_user = session.get('user')
