@@ -66,9 +66,6 @@ class Record(db.Model):
     m2_type = db.Column(db.String(20))  # montaz/demontaz
     address = db.Column(db.String(255))
 
-
-
-
 class Document(db.Model):
     __tablename__ = "documents"
     id = db.Column(db.Integer, primary_key=True)
@@ -86,6 +83,41 @@ class AdminCalendarNote(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     creator = db.relationship("User", backref="calendar_notes")
+
+
+class Crew(db.Model):
+    __tablename__ = "crews"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class CrewWeek(db.Model):
+    __tablename__ = "crew_weeks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    crew_id = db.Column(db.Integer, db.ForeignKey('crews.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    week = db.Column(db.Integer, nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    note = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    crew = db.relationship("Crew", backref="crew_weeks")
+    project = db.relationship("Project", backref="crew_weeks")
+
+
+class CrewWeekMember(db.Model):
+    __tablename__ = "crew_week_members"
+
+    id = db.Column(db.Integer, primary_key=True)
+    crew_week_id = db.Column(db.Integer, db.ForeignKey('crew_weeks.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    crew_week = db.relationship("CrewWeek", backref="members")
+    user = db.relationship("User", backref="crew_week_memberships")
 
 
 # ---------- ROUTES ----------
@@ -557,6 +589,158 @@ def edit_project(id):
         return redirect(url_for('projects'))
 
     return render_template('edit_project.html', project=project, user=user)
+
+#------------Patries--------------
+@app.route('/crews', methods=['GET', 'POST'])
+def crews():
+    session_user = session.get('user')
+    if not session_user:
+        return redirect(url_for('login'))
+
+    if not session_user.get('is_admin'):
+        flash("Nemáš oprávnenie zobraziť partie.", "danger")
+        return redirect(url_for('dashboard'))
+
+    from datetime import date
+
+    today = date.today()
+    current_year, current_week, _ = today.isocalendar()
+
+    selected_year = request.args.get('year', type=int) or current_year
+    selected_week = request.args.get('week', type=int) or current_week
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'create_crew':
+            name = (request.form.get('name') or '').strip()
+
+            if not name:
+                flash("Názov partie je povinný.", "danger")
+                return redirect(url_for('crews', year=selected_year, week=selected_week))
+
+            existing = Crew.query.filter(func.lower(Crew.name) == name.lower()).first()
+            if existing:
+                flash("Partia s týmto názvom už existuje.", "warning")
+                return redirect(url_for('crews', year=selected_year, week=selected_week))
+
+            new_crew = Crew(name=name)
+            db.session.add(new_crew)
+            db.session.commit()
+
+            flash("Názov partie bol vytvorený.", "success")
+            return redirect(url_for('crews', year=selected_year, week=selected_week))
+
+        elif action == 'create_crew_week':
+            crew_id = request.form.get('crew_id', type=int)
+            year = request.form.get('year', type=int)
+            week = request.form.get('week', type=int)
+            project_id = request.form.get('project_id', type=int)
+            note = (request.form.get('note') or '').strip()
+            member_ids = request.form.getlist('member_ids')
+
+            if not crew_id or not year or not week:
+                flash("Chýbajú údaje pre partiu v týždni.", "danger")
+                return redirect(url_for('crews', year=selected_year, week=selected_week))
+
+            existing = CrewWeek.query.filter_by(crew_id=crew_id, year=year, week=week).first()
+            if existing:
+                flash("Táto partia už pre daný týždeň existuje. Môžeš ju upraviť nižšie.", "warning")
+                return redirect(url_for('crews', year=year, week=week))
+
+            new_crew_week = CrewWeek(
+                crew_id=crew_id,
+                year=year,
+                week=week,
+                project_id=project_id if project_id else None,
+                note=note
+            )
+            db.session.add(new_crew_week)
+            db.session.flush()
+
+            for uid in member_ids:
+                try:
+                    db.session.add(CrewWeekMember(
+                        crew_week_id=new_crew_week.id,
+                        user_id=int(uid)
+                    ))
+                except ValueError:
+                    continue
+
+            db.session.commit()
+            flash("Partia pre týždeň bola vytvorená.", "success")
+            return redirect(url_for('crews', year=year, week=week))
+
+        elif action == 'update_crew_week':
+            crew_week_id = request.form.get('crew_week_id', type=int)
+            project_id = request.form.get('project_id', type=int)
+            note = (request.form.get('note') or '').strip()
+            member_ids = request.form.getlist('member_ids')
+            year = request.form.get('year', type=int)
+            week = request.form.get('week', type=int)
+
+            crew_week = CrewWeek.query.get_or_404(crew_week_id)
+            crew_week.project_id = project_id if project_id else None
+            crew_week.note = note
+
+            CrewWeekMember.query.filter_by(crew_week_id=crew_week.id).delete()
+
+            for uid in member_ids:
+                try:
+                    db.session.add(CrewWeekMember(
+                        crew_week_id=crew_week.id,
+                        user_id=int(uid)
+                    ))
+                except ValueError:
+                    continue
+
+            db.session.commit()
+            flash("Partia pre týždeň bola upravená.", "success")
+            return redirect(url_for('crews', year=year, week=week))
+
+        elif action == 'delete_crew_week':
+            crew_week_id = request.form.get('crew_week_id', type=int)
+            year = request.form.get('year', type=int)
+            week = request.form.get('week', type=int)
+
+            crew_week = CrewWeek.query.get_or_404(crew_week_id)
+            db.session.delete(crew_week)
+            db.session.commit()
+
+            flash("Partia pre týždeň bola odstránená.", "success")
+            return redirect(url_for('crews', year=year, week=week))
+
+        elif action == 'delete_crew':
+            crew_id = request.form.get('crew_id', type=int)
+
+            crew = Crew.query.get_or_404(crew_id)
+            db.session.delete(crew)
+            db.session.commit()
+
+            flash("Názov partie bol odstránený.", "success")
+            return redirect(url_for('crews', year=selected_year, week=selected_week))
+
+    all_crews = Crew.query.order_by(Crew.name).all()
+    all_projects = Project.query.order_by(Project.name).all()
+    all_users = User.query.order_by(User.name).all()
+
+    crew_weeks = (
+        CrewWeek.query
+        .filter_by(year=selected_year, week=selected_week)
+        .order_by(CrewWeek.id.desc())
+        .all()
+    )
+
+    return render_template(
+        'crew.html',
+        user=session_user,
+        crews=all_crews,
+        projects=all_projects,
+        users=all_users,
+        crew_weeks=crew_weeks,
+        selected_year=selected_year,
+        selected_week=selected_week
+    )
 
 # ---------- PDF EXPORT ----------
 
