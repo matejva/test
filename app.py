@@ -1193,6 +1193,119 @@ def delete_document(document_id):
         flash(f'Chyba pri mazaní: {str(e)}', 'danger')
 
     return redirect(url_for('documents'))
+-------------------------PDF PRE PARTIU-----------------------
+@app.route('/crews/<int:crew_week_id>/pdf')
+def export_crew_pdf(crew_week_id):
+    session_user = session.get('user')
+    if not session_user:
+        return redirect(url_for('login'))
+
+    if not session_user.get('is_admin'):
+        flash("Nemáš oprávnenie exportovať PDF partie.", "danger")
+        return redirect(url_for('dashboard'))
+
+    crew_week = CrewWeek.query.get_or_404(crew_week_id)
+    member_links = CrewWeekMember.query.filter_by(crew_week_id=crew_week.id).all()
+    member_ids = [m.user_id for m in member_links]
+
+    if not member_ids:
+        flash("Táto partia nemá žiadnych členov.", "warning")
+        return redirect(url_for('crews', year=crew_week.year, week=crew_week.week))
+
+    records = Record.query.filter(Record.user_id.in_(member_ids)).all()
+
+    filtered_records = []
+    for r in records:
+        try:
+            d = datetime.strptime(r.date, "%Y-%m-%d").date()
+            y, w, _ = d.isocalendar()
+            if y == crew_week.year and w == crew_week.week:
+                filtered_records.append(r)
+        except Exception:
+            continue
+
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=30,
+        rightMargin=30,
+        topMargin=40,
+        bottomMargin=30
+    )
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    title = f"Partia: {crew_week.crew.name} | Rok {crew_week.year} | Týždeň {crew_week.week}"
+    project_name = crew_week.project.name if crew_week.project else "Bez projektu"
+
+    member_names = []
+    for m in member_links:
+        u = User.query.get(m.user_id)
+        if u:
+            member_names.append(u.name)
+
+    story.append(Paragraph(f"<b>{title}</b>", styles["Title"]))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(f"<b>Projekt:</b> {project_name}", styles["Normal"]))
+    story.append(Paragraph(f"<b>Členovia:</b> {', '.join(member_names) if member_names else '-'}", styles["Normal"]))
+    story.append(Paragraph(f"<b>Poznámka:</b> {crew_week.note or '-'}", styles["Normal"]))
+    story.append(Spacer(1, 16))
+
+    table_data = [[
+        "Dátum", "Používateľ", "Projekt", "Adresa", "Operácia", "Hodiny", "m²", "Poznámka"
+    ]]
+
+    total_hours = 0
+    total_m2 = 0
+
+    for r in filtered_records:
+        user_obj = User.query.get(r.user_id)
+        project_obj = Project.query.get(r.project_id)
+
+        if r.unit_type == "m2":
+            operation = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
+            m2_value = f"{r.amount:.2f}"
+            hour_value = "-"
+            total_m2 += r.amount
+        else:
+            operation = "-"
+            m2_value = "-"
+            hour_value = f"{r.amount:.2f}"
+            total_hours += r.amount
+
+        table_data.append([
+            str(r.date),
+            user_obj.name if user_obj else "-",
+            project_obj.name if project_obj else "-",
+            r.address or "-",
+            operation,
+            hour_value,
+            m2_value,
+            r.note or "-"
+        ])
+
+    table = Table(table_data, repeatRows=1, colWidths=[70, 90, 120, 140, 80, 55, 50, 140])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (5, 1), (6, -1), 'RIGHT'),
+    ]))
+
+    story.append(table)
+    story.append(Spacer(1, 16))
+    story.append(Paragraph(f"<b>Súčet hodín:</b> {total_hours:.2f}", styles["Normal"]))
+    story.append(Paragraph(f"<b>Súčet m²:</b> {total_m2:.2f}", styles["Normal"]))
+
+    doc.build(story)
+    buffer.seek(0)
+
+    safe_name = crew_week.crew.name.replace(" ", "_")
+    filename = f"partia_{safe_name}_rok_{crew_week.year}_tyzden_{crew_week.week}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
 
 
 # ---------- DOWNLOAD DOCUMENT ----------
