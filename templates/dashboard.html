@@ -247,6 +247,67 @@ body.dark-mode .btn-glass {
       </div>
     </div>
   </div>
+  {% if user.is_admin %}
+<div class="glass-card p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h5 class="fw-semibold mb-0">👥 Partie za týždeň {{ selected_week }} / {{ selected_year }}</h5>
+    <a href="{{ url_for('crews', year=selected_year, week=selected_week) }}" class="btn btn-sm btn-outline-primary">
+      <i class="fa fa-users me-1"></i> Otvoriť partie
+    </a>
+  </div>
+
+  {% if crew_weeks_for_dashboard %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Partia</th>
+            <th>Projekt</th>
+            <th>Členovia</th>
+            <th>Poznámka</th>
+            <th>PDF</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cw in crew_weeks_for_dashboard %}
+          <tr>
+            <td>
+              <span class="fw-semibold">{{ cw.crew.name }}</span>
+            </td>
+            <td>
+              {% if cw.project %}
+                <span class="badge bg-info text-dark">{{ cw.project.name }}</span>
+              {% else %}
+                <span class="text-muted">Bez projektu</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if cw.members %}
+                {% for m in cw.members %}
+                  <span class="badge rounded-pill bg-light text-dark border">{{ m.user.name }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="text-muted">Nikto</span>
+              {% endif %}
+            </td>
+            <td>{{ cw.note or '—' }}</td>
+            <td>
+              <a href="{{ url_for('export_crew_pdf', crew_week_id=cw.id) }}" class="btn btn-sm btn-outline-danger">
+                <i class="fa fa-file-pdf me-1"></i> PDF
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">
+      Pre týždeň <strong>{{ selected_week }}</strong> / <strong>{{ selected_year }}</strong> zatiaľ nie sú vytvorené žiadne partie.
+    </div>
+  {% endif %}
+</div>
+{% endif %}
 
   <!-- Records Table -->
   <div class="glass-card p-4 mb-5">
