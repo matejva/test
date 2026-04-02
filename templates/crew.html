@@ -1,123 +1,163 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h2 class="fw-bold mb-0">👥 Partie</h2>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">👥 Partie</h2>
+    <div class="text-muted">Správa partii pre konkrétny týždeň, projekt a členov tímu.</div>
+  </div>
 
   <form method="get" action="{{ url_for('crews') }}" class="row g-2">
     <div class="col-auto">
+      <label class="form-label small text-muted mb-1">Rok</label>
       <input type="number" name="year" class="form-control" value="{{ selected_year }}" placeholder="Rok">
     </div>
     <div class="col-auto">
+      <label class="form-label small text-muted mb-1">Týždeň</label>
       <input type="number" name="week" min="1" max="53" class="form-control" value="{{ selected_week }}" placeholder="Týždeň">
     </div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary">Zobraziť</button>
+    <div class="col-auto d-flex align-items-end">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa fa-filter me-2"></i>Zobraziť
+      </button>
     </div>
   </form>
 </div>
 
-<div class="card shadow-sm mb-4">
-  <div class="card-body">
-    <h5 class="mb-3">Vytvoriť nový názov partie</h5>
-    <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}" class="row g-3">
-      <input type="hidden" name="action" value="create_crew">
+<div class="row g-4 mb-4">
+  <div class="col-xl-5">
+    <div class="card shadow-sm h-100 border-0">
+      <div class="card-body">
+        <h5 class="mb-3">➕ Vytvoriť nový názov partie</h5>
 
-      <div class="col-md-6">
-        <label class="form-label">Názov partie</label>
-        <input type="text" name="name" class="form-control" placeholder="Napr. Partia A" required>
-      </div>
+        <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}" class="row g-3">
+          <input type="hidden" name="action" value="create_crew">
 
-      <div class="col-md-3 d-flex align-items-end">
-        <button type="submit" class="btn btn-success w-100">
-          <i class="fa fa-plus me-2"></i>Pridať názov partie
-        </button>
+          <div class="col-12">
+            <label class="form-label">Názov partie</label>
+            <input type="text" name="name" class="form-control" placeholder="Napr. Partia A" required>
+          </div>
+
+          <div class="col-12">
+            <button type="submit" class="btn btn-success">
+              <i class="fa fa-plus me-2"></i>Pridať názov partie
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
-</div>
 
-<div class="card shadow-sm mb-4">
-  <div class="card-body">
-    <h5 class="mb-3">Vytvoriť partiu pre týždeň {{ selected_week }} / {{ selected_year }}</h5>
+  <div class="col-xl-7">
+    <div class="card shadow-sm h-100 border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h5 class="mb-0">🗓️ Vytvoriť partiu pre týždeň</h5>
+          <span class="badge bg-primary fs-6">Týždeň {{ selected_week }} / {{ selected_year }}</span>
+        </div>
 
-    <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}" class="row g-3">
-      <input type="hidden" name="action" value="create_crew_week">
-      <input type="hidden" name="year" value="{{ selected_year }}">
-      <input type="hidden" name="week" value="{{ selected_week }}">
+        <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}" class="row g-3">
+          <input type="hidden" name="action" value="create_crew_week">
+          <input type="hidden" name="year" value="{{ selected_year }}">
+          <input type="hidden" name="week" value="{{ selected_week }}">
 
-      <div class="col-md-3">
-        <label class="form-label">Názov partie</label>
-        <select name="crew_id" class="form-select" required>
-          <option value="">-- Vyber partiu --</option>
-          {% for crew in crews %}
-          <option value="{{ crew.id }}">{{ crew.name }}</option>
-          {% endfor %}
-        </select>
+          <div class="col-md-4">
+            <label class="form-label">Názov partie</label>
+            <select name="crew_id" class="form-select" required>
+              <option value="">-- Vyber partiu --</option>
+              {% for crew in crews %}
+              <option value="{{ crew.id }}">{{ crew.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Projekt</label>
+            <select name="project_id" class="form-select">
+              <option value="">-- Bez projektu --</option>
+              {% for project in projects %}
+              <option value="{{ project.id }}">{{ project.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Poznámka</label>
+            <input type="text" name="note" class="form-control" placeholder="Poznámka k partii">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Členovia partie</label>
+            <select name="member_ids" class="form-select" multiple size="8">
+              {% for u in users %}
+              <option value="{{ u.id }}">{{ u.name }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Drž Ctrl alebo Cmd pre výber viacerých používateľov.</div>
+          </div>
+
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-save me-2"></i>Vytvoriť partiu pre týždeň
+            </button>
+          </div>
+        </form>
       </div>
-
-      <div class="col-md-3">
-        <label class="form-label">Projekt</label>
-        <select name="project_id" class="form-select">
-          <option value="">-- Bez projektu --</option>
-          {% for project in projects %}
-          <option value="{{ project.id }}">{{ project.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Poznámka</label>
-        <input type="text" name="note" class="form-control" placeholder="Poznámka k partii">
-      </div>
-
-      <div class="col-12">
-        <label class="form-label">Členovia partie</label>
-        <select name="member_ids" class="form-select" multiple size="8">
-          {% for u in users %}
-          <option value="{{ u.id }}">{{ u.name }}</option>
-          {% endfor %}
-        </select>
-        <div class="form-text">Drž Ctrl alebo Cmd pre výber viacerých používateľov.</div>
-      </div>
-
-      <div class="col-12">
-        <button type="submit" class="btn btn-primary">
-          <i class="fa fa-save me-2"></i>Vytvoriť partiu pre týždeň
-        </button>
-      </div>
-    </form>
+    </div>
   </div>
 </div>
 
 {% if crew_weeks %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-semibold mb-0">Aktívne partie pre týždeň {{ selected_week }} / {{ selected_year }}</h4>
+    <span class="badge bg-dark">{{ crew_weeks|length }} záznam(ov)</span>
+  </div>
+
   {% for cw in crew_weeks %}
-  <div class="card shadow-sm mb-4">
+  <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-          <h5 class="mb-1">{{ cw.crew.name }}</h5>
-          <div class="text-muted small">Týždeň {{ cw.week }} / {{ cw.year }}</div>
-          <div class="mt-2"><strong>Projekt:</strong> {{ cw.project.name if cw.project else 'Bez projektu' }}</div>
-          <div><strong>Poznámka:</strong> {{ cw.note or 'Bez poznámky' }}</div>
-          <div class="mt-2">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <h5 class="mb-0">{{ cw.crew.name }}</h5>
+            <span class="badge bg-primary">Týždeň {{ cw.week }} / {{ cw.year }}</span>
+            {% if cw.project %}
+              <span class="badge bg-info text-dark">{{ cw.project.name }}</span>
+            {% else %}
+              <span class="badge bg-secondary">Bez projektu</span>
+            {% endif %}
+          </div>
+
+          <div class="mb-2">
+            <strong>Poznámka:</strong>
+            <span class="text-muted">{{ cw.note or 'Bez poznámky' }}</span>
+          </div>
+
+          <div>
             <strong>Členovia:</strong>
             {% if cw.members %}
-              {% for m in cw.members %}
-                {{ m.user.name }}{% if not loop.last %}, {% endif %}
-              {% endfor %}
+              <div class="mt-2 d-flex flex-wrap gap-2">
+                {% for m in cw.members %}
+                  <span class="badge rounded-pill bg-light text-dark border">{{ m.user.name }}</span>
+                {% endfor %}
+              </div>
             {% else %}
-              nikto
+              <span class="text-muted"> nikto</span>
             {% endif %}
           </div>
         </div>
 
         <div class="d-flex gap-2 flex-wrap">
+          <a href="{{ url_for('export_crew_pdf', crew_week_id=cw.id) }}" class="btn btn-outline-dark btn-sm">
+            <i class="fa fa-file-pdf me-1"></i>PDF
+          </a>
+
           <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#editCrewWeek{{ cw.id }}">
             <i class="fa fa-pen me-1"></i>Upraviť
           </button>
 
-          <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}"
+          <form method="post"
+                action="{{ url_for('crews', year=selected_year, week=selected_week) }}"
                 onsubmit="return confirm('Naozaj chceš zmazať túto partiu pre týždeň?');">
             <input type="hidden" name="action" value="delete_crew_week">
             <input type="hidden" name="crew_week_id" value="{{ cw.id }}">
@@ -132,7 +172,7 @@
 
       <div class="collapse mt-4" id="editCrewWeek{{ cw.id }}">
         <div class="border-top pt-4">
-          <h6>Upraviť partiu</h6>
+          <h6 class="mb-3">✏️ Upraviť partiu</h6>
 
           <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}" class="row g-3">
             <input type="hidden" name="action" value="update_crew_week">
@@ -167,6 +207,7 @@
                 </option>
                 {% endfor %}
               </select>
+              <div class="form-text">Vyber nových členov pre tento týždeň a ulož zmeny.</div>
             </div>
 
             <div class="col-12">
@@ -181,14 +222,18 @@
   </div>
   {% endfor %}
 {% else %}
-  <div class="alert alert-info">
-    Pre týždeň {{ selected_week }} / {{ selected_year }} zatiaľ nie sú vytvorené žiadne partie.
+  <div class="alert alert-info shadow-sm">
+    <i class="fa fa-circle-info me-2"></i>
+    Pre týždeň <strong>{{ selected_week }} / {{ selected_year }}</strong> zatiaľ nie sú vytvorené žiadne partie.
   </div>
 {% endif %}
 
-<div class="card shadow-sm">
+<div class="card shadow-sm border-0">
   <div class="card-body">
-    <h5 class="mb-3">Správa názvov partii</h5>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h5 class="mb-0">🧩 Správa názvov partii</h5>
+      <span class="text-muted small">Mazanie názvu zmaže aj jeho týždenné väzby.</span>
+    </div>
 
     {% if crews %}
       <div class="table-responsive">
@@ -202,9 +247,10 @@
           <tbody>
             {% for crew in crews %}
             <tr>
-              <td>{{ crew.name }}</td>
+              <td class="fw-semibold">{{ crew.name }}</td>
               <td>
-                <form method="post" action="{{ url_for('crews', year=selected_year, week=selected_week) }}"
+                <form method="post"
+                      action="{{ url_for('crews', year=selected_year, week=selected_week) }}"
                       class="d-inline"
                       onsubmit="return confirm('Naozaj chceš odstrániť názov partie? Zmažú sa aj týždenné väzby tejto partie.');">
                   <input type="hidden" name="action" value="delete_crew">
