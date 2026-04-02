@@ -590,7 +590,7 @@ def edit_project(id):
 
     return render_template('edit_project.html', project=project, user=user)
 
-#------------Patries--------------
+#------------Parties--------------
 @app.route('/crews', methods=['GET', 'POST'])
 def crews():
     session_user = session.get('user')
@@ -698,17 +698,17 @@ def crews():
             flash("Partia pre týždeň bola upravená.", "success")
             return redirect(url_for('crews', year=year, week=week))
 
-       elif action == 'delete_crew_week':
+        elif action == 'delete_crew_week':
             crew_week_id = request.form.get('crew_week_id', type=int)
             year = request.form.get('year', type=int)
             week = request.form.get('week', type=int)
-        
+
             crew_week = CrewWeek.query.get_or_404(crew_week_id)
-        
+
             CrewWeekMember.query.filter_by(crew_week_id=crew_week.id).delete()
             db.session.delete(crew_week)
             db.session.commit()
-        
+
             flash("Partia pre týždeň bola odstránená.", "success")
             return redirect(url_for('crews', year=year, week=week))
 
@@ -716,6 +716,12 @@ def crews():
             crew_id = request.form.get('crew_id', type=int)
 
             crew = Crew.query.get_or_404(crew_id)
+            crew_weeks_to_delete = CrewWeek.query.filter_by(crew_id=crew.id).all()
+
+            for cw in crew_weeks_to_delete:
+                CrewWeekMember.query.filter_by(crew_week_id=cw.id).delete()
+
+            CrewWeek.query.filter_by(crew_id=crew.id).delete()
             db.session.delete(crew)
             db.session.commit()
 
@@ -743,7 +749,6 @@ def crews():
         selected_year=selected_year,
         selected_week=selected_week
     )
-
 # ---------- PDF EXPORT ----------
 
 @app.route('/export/pdf')
