@@ -300,6 +300,19 @@ def dashboard():
     chart_labels_m2 = sorted(m2_per_date.keys())
     chart_values_m2 = [m2_per_date[k] for k in chart_labels_m2]
 
+    # --- 👥 Partie na dashboarde ---
+    crew_weeks_for_dashboard = []
+    if session_user.get('is_admin'):
+        crew_weeks_for_dashboard = (
+            CrewWeek.query
+            .filter(
+                CrewWeek.year == year,
+                CrewWeek.week == week
+            )
+            .order_by(CrewWeek.id.desc())
+            .all()
+        )
+
     # --- 🔹 Render ---
     return render_template(
         'dashboard.html',
