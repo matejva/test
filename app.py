@@ -338,7 +338,8 @@ def dashboard():
         selected_project=selected_project,
         unit_type_filter=unit_type_filter,
         selected_year=year,
-        selected_week=week
+        selected_week=week,
+        crew_weeks_for_dashboard=crew_weeks_for_dashboard
     )
 
 @app.route('/add_record', methods=['POST'])
