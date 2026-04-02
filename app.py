@@ -1194,15 +1194,25 @@ def delete_document(document_id):
 
     return redirect(url_for('documents'))
 #-------------------------PDF PRE PARTIU-----------------------
+# ---------- PDF EXPORT PRE PARTIU ----------
 @app.route('/crews/<int:crew_week_id>/pdf')
 def export_crew_pdf(crew_week_id):
-    session_user = session.get('user')
-    if not session_user:
+    user = session.get('user')
+    if not user:
         return redirect(url_for('login'))
 
-    if not session_user.get('is_admin'):
+    if not user.get('is_admin'):
         flash("Nemáš oprávnenie exportovať PDF partie.", "danger")
         return redirect(url_for('dashboard'))
+
+    # 🟢 Registrácia TTF fontov – s diakritikou
+    font_dir = os.path.join(app.root_path, "static", "fonts")
+    try:
+        pdfmetrics.registerFont(TTFont("FreeSans", os.path.join(font_dir, "FreeSans.ttf")))
+        pdfmetrics.registerFont(TTFont("FreeSans-Bold", os.path.join(font_dir, "FreeSansBold.ttf")))
+        font_name = "FreeSans"
+    except Exception:
+        font_name = "Helvetica"
 
     crew_week = CrewWeek.query.get_or_404(crew_week_id)
     member_links = CrewWeekMember.query.filter_by(crew_week_id=crew_week.id).all()
@@ -1214,16 +1224,117 @@ def export_crew_pdf(crew_week_id):
 
     records = Record.query.filter(Record.user_id.in_(member_ids)).all()
 
+    from datetime import datetime
     filtered_records = []
+
     for r in records:
         try:
             d = datetime.strptime(r.date, "%Y-%m-%d").date()
             y, w, _ = d.isocalendar()
             if y == crew_week.year and w == crew_week.week:
                 filtered_records.append(r)
-        except Exception:
+        except:
             continue
 
+    # Skutočný súčet m²
+    from collections import defaultdict
+    m2_real_sum = 0
+    grouped_m2 = defaultdict(list)
+
+    for r in filtered_records:
+        if r.unit_type == "m2":
+            grouped_m2[(r.project_id, r.date)].append(r)
+
+    for key, recs in grouped_m2.items():
+        m2_real_sum += recs[0].amount
+
+    # Sort podľa mena usera
+    filtered_records.sort(key=lambda x: User.query.get(x.user_id).name.lower() if User.query.get(x.user_id) else "")
+
+    # ---------- PLATYPUS TABLE ----------
+    from reportlab.platypus import Table, TableStyle, Paragraph, SimpleDocTemplate, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.lib import colors
+
+    styles = getSampleStyleSheet()
+
+    styleN = styles["Normal"]
+    styleN.fontName = font_name
+    styleN.fontSize = 9
+    styleN.leading = 11
+    styleN.alignment = TA_LEFT
+
+    styleHeader = styles["Heading5"]
+    styleHeader.fontName = font_name + "-Bold" if font_name != "Helvetica" else "Helvetica-Bold"
+    styleHeader.fontSize = 10
+    styleHeader.leading = 12
+    styleHeader.alignment = TA_CENTER
+
+    title_style = styles["Title"]
+    title_style.fontName = font_name + "-Bold" if font_name != "Helvetica" else "Helvetica-Bold"
+
+    # Info o partii
+    project_name = crew_week.project.name if crew_week.project else "Bez projektu"
+    member_names = []
+    for m in member_links:
+        usr = User.query.get(m.user_id)
+        if usr:
+            member_names.append(usr.name)
+
+    # ----- HEADER -----
+    table_data = [[
+        Paragraph("Dátum", styleHeader),
+        Paragraph("Používateľ", styleHeader),
+        Paragraph("Projekt", styleHeader),
+        Paragraph("Adresa", styleHeader),
+        Paragraph("Operácia", styleHeader),
+        Paragraph("Hodiny", styleHeader),
+        Paragraph("m²", styleHeader),
+        Paragraph("Poznámka", styleHeader)
+    ]]
+
+    total_hours = 0
+
+    # ----- ROWS -----
+    for r in filtered_records:
+        proj = Project.query.get(r.project_id)
+        usr = User.query.get(r.user_id)
+
+        if r.unit_type == "m2":
+            op = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
+        else:
+            op = "-"
+
+        table_data.append([
+            Paragraph(str(r.date), styleN),
+            Paragraph(usr.name if usr else "-", styleN),
+            Paragraph(proj.name if proj else "-", styleN),
+            Paragraph(r.address or "-", styleN),
+            Paragraph(op, styleN),
+            Paragraph(f"{r.amount:.2f}" if r.unit_type == "hodiny" else "-", styleN),
+            Paragraph(f"{r.amount:.2f}" if r.unit_type == "m2" else "-", styleN),
+            Paragraph(r.note or "", styleN)
+        ])
+
+        if r.unit_type == "hodiny":
+            total_hours += r.amount
+
+    # ----- TABLE -----
+    col_widths = [70, 90, 120, 150, 90, 50, 40, 150]
+
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+    table.setStyle(TableStyle([
+        ('FONT', (0, 0), (-1, -1), font_name, 9),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.black),
+        ('ALIGN', (5, 1), (6, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+    ]))
+
+    # ----- PDF OUTPUT -----
     buffer = io.BytesIO()
 
     doc = SimpleDocTemplate(
@@ -1235,77 +1346,36 @@ def export_crew_pdf(crew_week_id):
         bottomMargin=30
     )
 
-    styles = getSampleStyleSheet()
     story = []
 
-    title = f"Partia: {crew_week.crew.name} | Rok {crew_week.year} | Týždeň {crew_week.week}"
-    project_name = crew_week.project.name if crew_week.project else "Bez projektu"
-
-    member_names = []
-    for m in member_links:
-        u = User.query.get(m.user_id)
-        if u:
-            member_names.append(u.name)
-
-    story.append(Paragraph(f"<b>{title}</b>", styles["Title"]))
+    # TITLE
+    story.append(Paragraph(
+        f"<b>Partia: {crew_week.crew.name} | Rok {crew_week.year} | Týždeň {crew_week.week}</b>",
+        title_style
+    ))
     story.append(Spacer(1, 12))
-    story.append(Paragraph(f"<b>Projekt:</b> {project_name}", styles["Normal"]))
-    story.append(Paragraph(f"<b>Členovia:</b> {', '.join(member_names) if member_names else '-'}", styles["Normal"]))
-    story.append(Paragraph(f"<b>Poznámka:</b> {crew_week.note or '-'}", styles["Normal"]))
-    story.append(Spacer(1, 16))
-
-    table_data = [[
-        "Dátum", "Používateľ", "Projekt", "Adresa", "Operácia", "Hodiny", "m²", "Poznámka"
-    ]]
-
-    total_hours = 0
-    total_m2 = 0
-
-    for r in filtered_records:
-        user_obj = User.query.get(r.user_id)
-        project_obj = Project.query.get(r.project_id)
-
-        if r.unit_type == "m2":
-            operation = "Montáž" if r.m2_type == "montaz" else ("Demontáž" if r.m2_type == "demontaz" else "-")
-            m2_value = f"{r.amount:.2f}"
-            hour_value = "-"
-            total_m2 += r.amount
-        else:
-            operation = "-"
-            m2_value = "-"
-            hour_value = f"{r.amount:.2f}"
-            total_hours += r.amount
-
-        table_data.append([
-            str(r.date),
-            user_obj.name if user_obj else "-",
-            project_obj.name if project_obj else "-",
-            r.address or "-",
-            operation,
-            hour_value,
-            m2_value,
-            r.note or "-"
-        ])
-
-    table = Table(table_data, repeatRows=1, colWidths=[70, 90, 120, 140, 80, 55, 50, 140])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 0.3, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (5, 1), (6, -1), 'RIGHT'),
-    ]))
+    story.append(Paragraph(f"<b>Projekt:</b> {project_name}", styleN))
+    story.append(Paragraph(f"<b>Členovia:</b> {', '.join(member_names) if member_names else '-'}", styleN))
+    story.append(Paragraph(f"<b>Poznámka:</b> {crew_week.note or '-'}", styleN))
+    story.append(Spacer(1, 20))
 
     story.append(table)
-    story.append(Spacer(1, 16))
-    story.append(Paragraph(f"<b>Súčet hodín:</b> {total_hours:.2f}", styles["Normal"]))
-    story.append(Paragraph(f"<b>Súčet m²:</b> {total_m2:.2f}", styles["Normal"]))
+    story.append(Spacer(1, 20))
+
+    # SUMMARY
+    story.append(Paragraph(f"<b>Súčet hodín:</b> {total_hours:.2f}", styleN))
+    story.append(Paragraph(f"<b>Súčet m²:</b> {m2_real_sum:.2f}", styleN))
 
     doc.build(story)
-    buffer.seek(0)
 
+    buffer.seek(0)
     safe_name = crew_week.crew.name.replace(" ", "_")
-    filename = f"partia_{safe_name}_rok_{crew_week.year}_tyzden_{crew_week.week}.pdf"
-    return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"partia_{safe_name}_rok_{crew_week.year}_tyzden_{crew_week.week}.pdf",
+        mimetype="application/pdf"
+    )
 
 
 # ---------- DOWNLOAD DOCUMENT ----------
