@@ -698,15 +698,17 @@ def crews():
             flash("Partia pre týždeň bola upravená.", "success")
             return redirect(url_for('crews', year=year, week=week))
 
-        elif action == 'delete_crew_week':
+       elif action == 'delete_crew_week':
             crew_week_id = request.form.get('crew_week_id', type=int)
             year = request.form.get('year', type=int)
             week = request.form.get('week', type=int)
-
+        
             crew_week = CrewWeek.query.get_or_404(crew_week_id)
+        
+            CrewWeekMember.query.filter_by(crew_week_id=crew_week.id).delete()
             db.session.delete(crew_week)
             db.session.commit()
-
+        
             flash("Partia pre týždeň bola odstránená.", "success")
             return redirect(url_for('crews', year=year, week=week))
 
