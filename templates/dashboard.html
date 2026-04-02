@@ -146,6 +146,17 @@ body.dark-mode .btn-glass {
         {% endfor %}
       </select>
       {% endif %}
+      
+      {% if user.is_admin %}
+      <select name="crew_id" class="form-select">
+        <option value="">👥 Všetky partie</option>
+        {% for c in crews %}
+        <option value="{{ c.id }}" {% if selected_crew == c.id %}selected{% endif %}>
+          {{ c.name }}
+        </option>
+        {% endfor %}
+      </select>
+      {% endif %}
 
       <select name="project_id" class="form-select">
         <option value="">📁 Všetky projekty</option>
