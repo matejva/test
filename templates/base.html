@@ -59,6 +59,14 @@
           <i class="fa fa-calendar me-2"></i> Kalendár
         </a>
       </li>
+        
+          <!-- Partie -->
+      <li>
+        <a href="{{ url_for('crews') }}" 
+            class="{% if request.endpoint == 'crews' %}active{% endif %}">
+          <i class="fa fa-users me-2"></i> Partie
+        </a>
+      </li>
       {% endif %}
       </ul>
     </div>
