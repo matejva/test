@@ -316,7 +316,7 @@ def dashboard():
             crew_query = crew_query.filter(CrewWeek.project_id == selected_project)
 
         crew_weeks_for_dashboard = crew_query.order_by(CrewWeek.id.desc()).all()
-        )
+        
     #----priprava partii-------
     crews = []
     if session_user.get('is_admin'):
