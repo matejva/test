@@ -187,6 +187,7 @@ def dashboard():
 
     # --- 🔹 Filtrovanie ---
     selected_user = request.args.get('user_id', type=int)
+    selected_crew = request.args.get('crew_id', type=int)
     selected_project = request.args.get('project_id', type=int)
     unit_type_filter = request.args.get('unit_type')
     selected_year = request.args.get('year', type=int)
@@ -301,17 +302,25 @@ def dashboard():
     chart_values_m2 = [m2_per_date[k] for k in chart_labels_m2]
 
     # --- 👥 Partie na dashboarde ---
-    crew_weeks_for_dashboard = []
+      crew_weeks_for_dashboard = []
     if session_user.get('is_admin'):
-        crew_weeks_for_dashboard = (
-            CrewWeek.query
-            .filter(
-                CrewWeek.year == year,
-                CrewWeek.week == week
-            )
-            .order_by(CrewWeek.id.desc())
-            .all()
+        crew_query = CrewWeek.query.filter(
+            CrewWeek.year == year,
+            CrewWeek.week == week
         )
+
+        if selected_crew:
+            crew_query = crew_query.filter(CrewWeek.crew_id == selected_crew)
+
+        if selected_project:
+            crew_query = crew_query.filter(CrewWeek.project_id == selected_project)
+
+        crew_weeks_for_dashboard = crew_query.order_by(CrewWeek.id.desc()).all()
+        )
+    #----priprava partii-------
+    crews = []
+    if session_user.get('is_admin'):
+        crews = Crew.query.order_by(Crew.name).all()
 
     # --- 🔹 Render ---
     return render_template(
@@ -339,7 +348,10 @@ def dashboard():
         unit_type_filter=unit_type_filter,
         selected_year=year,
         selected_week=week,
-        crew_weeks_for_dashboard=crew_weeks_for_dashboard
+        crew_weeks_for_dashboard=crew_weeks_for_dashboard,
+        crews=crews,
+        selected_crew=selected_crew,
+   
     )
 
 @app.route('/add_record', methods=['POST'])
